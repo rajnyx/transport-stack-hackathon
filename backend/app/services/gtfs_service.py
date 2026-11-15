@@ -16,6 +16,7 @@ from collections import defaultdict
 from typing import Dict, List, Tuple, Set, Optional, Any
 import pandas as pd
 from sqlalchemy import create_engine, select, delete
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.models.transit import (

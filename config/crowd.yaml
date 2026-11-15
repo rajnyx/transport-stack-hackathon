@@ -35,7 +35,8 @@ assumptions:
     verified: false
     source: "Standard Delhi Transport Corporation (DTC) bus capacity estimate"
   expansion_factor:
-    value: 2.3
+    value: 1.30
     assumption: true
-    source: "Estimated expansion factor accounting for un-ticketed passengers and free female travel (Pink Passes)"
+    verified: false
+    source: "Provisional assumption for un-ticketed passengers and Pink Pass travel; requires validation against transport data."
 

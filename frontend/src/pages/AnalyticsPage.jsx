@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import { getAnalyticsSummary, getDailyVolume } from '../api';
 import RouteBadge from '../components/primitives/RouteBadge';
-import CrowdStrip from '../components/primitives/CrowdStrip';
+import CrowdStrip, { normalizeCrowdCategory } from '../components/primitives/CrowdStrip';
 import { useTranslation } from '../i18n/LanguageContext';
 
 export default function AnalyticsPage() {
@@ -250,8 +250,15 @@ export default function AnalyticsPage() {
             <tbody className="divide-y divide-transit-borderSubtle">
               {sortedRoutes.map((r) => {
                 const barWidth = Math.min(100, Math.round(r.avg_peak_rci));
+                const normCat = normalizeCrowdCategory(r.category);
                 const barColor =
-                  r.avg_peak_rci > 85 ? 'bg-crowd-high' : r.avg_peak_rci > 65 ? 'bg-crowd-mod' : 'bg-crowd-low';
+                  normCat === 'high'
+                    ? 'bg-crowd-high'
+                    : normCat === 'moderate'
+                    ? 'bg-crowd-mod'
+                    : normCat === 'low'
+                    ? 'bg-crowd-low'
+                    : 'bg-crowd-unknown';
 
                 return (
                   <tr key={r.route_id} className="hover:bg-transit-bg/30 transition-colors">

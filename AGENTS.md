@@ -41,3 +41,11 @@ Every API payload and UI component displaying data must declare its provenance t
 - [x] Independent reconciliation verified in `docs/VALIDATION_REPORT.md`.
 - [x] Hackathon pack (`PROPOSAL.md`, `TECHNICAL_NOTE.md`, `DEMO_SCRIPT.md`, `MANUAL_TODO.md`) complete.
 
+## 19. Fork Synchronization & Conflict Prevention
+- **Automatic Pull**: Always run `git pull` automatically on startup/session open without expecting manual user intervention.
+- **Origin (User Fork)**: `https://github.com/chhajedyasha/transport-stack-hackathon.git`
+- **Upstream (Base)**: `https://github.com/rajnyx/transport-stack-hackathon.git`
+- **Sync Protocol**: Always fetch upstream (`git fetch upstream main`) and rebase cleanly before pushing to `origin main` to avoid merge conflicts with the parent repository.
+
+
+

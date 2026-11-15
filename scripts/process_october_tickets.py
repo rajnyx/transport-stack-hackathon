@@ -88,6 +88,56 @@ def resolve_stop_seq(stop_name: str, pid: str, pattern_stops: List[Tuple[int, in
     return None
 
 
+def parse_ticket_timestamps(df: pd.DataFrame) -> pd.DataFrame:
+    """Robustly parses ticket timestamps in df['created_at'] preserving IST (+05:30).
+
+    Uses pd.to_datetime(format='mixed') with compatibility and error checks.
+    Extracts:
+      - df['hour']: int (0-23) in IST
+      - df['trip_date']: str (YYYY-MM-DD) in IST
+      - df['day_type']: 'WEEKDAY', 'SATURDAY', or 'SUNDAY'
+
+    Raises:
+      RuntimeError: If pandas does not support format='mixed'.
+      ValueError: If any invalid or corrupt timestamps are encountered.
+    """
+    # 1. Check Pandas compatibility for format="mixed" (requires pandas >= 2.0.0)
+    try:
+        _ = pd.to_datetime(["2026-10-01 10:00:00+05:30"], format="mixed")
+    except (TypeError, ValueError) as err:
+        msg = (
+            f"Installed Pandas version ({pd.__version__}) does not support format='mixed' in pd.to_datetime(). "
+            "Pandas >= 2.0.0 is required for robust mixed-format timestamp parsing."
+        )
+        logger.critical(msg)
+        raise RuntimeError(msg) from err
+
+    # 2. Robust ISO timestamp parsing with format="mixed", preserving IST (+05:30)
+    created_at_dt = pd.to_datetime(df["created_at"], format="mixed", errors="coerce")
+
+    # 3. Detect, count, and log invalid timestamps
+    invalid_mask = created_at_dt.isna()
+    invalid_count = int(invalid_mask.sum())
+    if invalid_count > 0:
+        logger.error(f"Found {invalid_count} invalid timestamp(s) in 'created_at'.")
+        raise ValueError(
+            f"Found {invalid_count} invalid timestamp(s) in 'created_at'. "
+            "Processing stopped to prevent generating incorrect results."
+        )
+    logger.info(f"Successfully validated {len(created_at_dt):,} timestamps (0 invalid).")
+
+    # 4. Preserve original IST timezone (+05:30) if timezone-aware
+    if created_at_dt.dt.tz is not None:
+        created_at_dt = created_at_dt.dt.tz_convert("+05:30")
+
+    # 5. Extract hour, trip_date, and day_type
+    df["hour"] = created_at_dt.dt.hour.astype(int)
+    df["trip_date"] = created_at_dt.dt.strftime("%Y-%m-%d")
+    dow = created_at_dt.dt.dayofweek
+    df["day_type"] = np.where(dow == 6, "SUNDAY", np.where(dow == 5, "SATURDAY", "WEEKDAY"))
+    return df
+
+
 def run_pipeline(csv_path: str, db_url: str):
     logger.info("==================================================================")
     logger.info("  STARTING CROWDWISE OCTOBER 2026 TICKETING RECONSTRUCTION        ")
@@ -163,12 +213,8 @@ def run_pipeline(csv_path: str, db_url: str):
     df = pd.read_csv(csv_path, usecols=usecols)
     logger.info(f"Loaded {len(df):,} raw ticket rows in {time.time()-t0:.2f}s.")
 
-    # Fast ISO timestamp parsing via string slicing
-    df["hour"] = df["created_at"].str[11:13].astype(int)
-    df["trip_date"] = df["created_at"].str[:10]
-    date_dt = pd.to_datetime(df["trip_date"])
-    dow = date_dt.dt.dayofweek
-    df["day_type"] = np.where(dow == 6, "SUNDAY", np.where(dow == 5, "SATURDAY", "WEEKDAY"))
+    # Robust ISO timestamp parsing via pd.to_datetime(format="mixed"), preserving IST (+05:30)
+    df = parse_ticket_timestamps(df)
     
     df["route_clean"] = df["route"].astype(str).str.strip().str.upper()
     df["direction_id"] = np.where(df["route_clean"].str.contains("DOWN|DN"), 1, 0)
@@ -330,6 +376,14 @@ def run_pipeline(csv_path: str, db_url: str):
     logger.info(f"  - Corridor Facts Created: {len(df_facts):,}                     ")
     logger.info("  - Active Provenance Tier: organizer                             ")
     logger.info("==================================================================")
+
+
+def process_dataset(csv_path: str, db_url: Optional[str] = None):
+    """Pipeline entrypoint for external callers (bootstrap.py / rebuild_from_real_data.py)."""
+    if db_url is None:
+        db_file = os.path.join(backend_dir, "crowdwise.db")
+        db_url = f"sqlite:///{db_file}"
+    return run_pipeline(csv_path, db_url)
 
 
 if __name__ == "__main__":

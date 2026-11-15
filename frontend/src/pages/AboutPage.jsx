@@ -189,9 +189,13 @@ export default function AboutPage() {
             </dd>
           </div>
           <div className="p-3">
-            <dt className="font-bold text-navy">RCI (Relative Crowding Index)</dt>
+            <dt className="font-bold text-navy">
+              {lang === 'hi' ? 'RCI (रिलेटिव क्राउडिंग इंडेक्स)' : 'RCI (Relative Crowding Index)'}
+            </dt>
             <dd className="text-transit-textMuted mt-0.5">
-              A normalized 0–100 scale measuring passenger load relative to standard bus design capacity (e.g., &lt;50 = seats available, 50–85 = standing room, &gt;85 = high crowding).
+              {lang === 'hi'
+                ? 'एक मानकीकृत 0–100 सापेक्ष भीड़ संकेतक जो विभिन्न रूटों और समय पर अपेक्षित बस भीड़ स्तर को दर्शाता है, न कि कोई सटीक यात्री प्रतिशत।'
+                : 'A normalized 0–100 relative crowding indicator representing expected bus crowdedness across routes and times of day, rather than an exact occupancy percentage.'}
             </dd>
           </div>
           <div className="p-3">
