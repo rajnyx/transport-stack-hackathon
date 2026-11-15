@@ -8,23 +8,22 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   ReferenceLine,
   ReferenceArea,
 } from 'recharts';
+import { Lightbulb } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
 /**
- * RouteCrowdingChart
- * Recreates the chart from Screenshot 2:
+ * RouteCrowdingChart — Matches Stitch Journey Results Chart:
  * - Title: "Typical crowd on route [Route] by time of day"
- * - Subtitle: "Based on past ticket data. Weekday and weekend."
- * - Three background horizontal bands: High (pink), Moderate (yellow), Low (green)
+ * - Subtitle: "Based on past ticket data. Weekday vs weekend comparison."
+ * - Three background horizontal capacity zones: High (red tint), Moderate (amber tint), Low (green tint)
  * - Y-axis labels: High, Moderate, Low
  * - X-axis: 6 am, 9 am, 12 pm, 3 pm, 6 pm, 9 pm
- * - Blue solid weekday curve, Dotted weekend curve
- * - Selected bus line with tag: "Your bus 6:00 pm"
- * - Smart suggestion card: "Leave 30 minutes later..."
+ * - Deep green solid weekday curve with gradient fill (#004327), Dotted weekend curve (#707971)
+ * - Selected bus line with tag: "Your bus: 6:00 pm"
+ * - Dynamic Proactive Recommendation Banner: "Leave 30 minutes later..."
  */
 export default function RouteCrowdingChart({
   routeNumber = '73UP',
@@ -44,6 +43,19 @@ export default function RouteCrowdingChart({
     const period = h >= 12 ? 'pm' : 'am';
     h = h % 12 || 12;
     return `${h}:${m} ${period}`;
+  }, [departureTime]);
+
+  // Closest x-axis point for reference line
+  const closestHourLabel = useMemo(() => {
+    if (!departureTime) return '6 pm';
+    const parts = departureTime.split(':');
+    let h = parseInt(parts[0], 10);
+    if (isNaN(h)) return '6 pm';
+    if (h < 6) h = 6;
+    if (h > 21) h = 21;
+    const period = h >= 12 ? 'pm' : 'am';
+    const displayH = h % 12 || 12;
+    return `${displayH} ${period}`;
   }, [departureTime]);
 
   const chartData = [
@@ -66,56 +78,66 @@ export default function RouteCrowdingChart({
   ];
 
   return (
-    <div className={`bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-3 ${className}`}>
+    <div className={`bg-white border border-[#d8e6dd] rounded-xl p-4 sm:p-5 shadow-sm space-y-3.5 ${className}`}>
       {/* Title & Subtitle */}
       <div>
-        <h3 className="text-sm font-bold text-slate-900">
+        <h3 className="text-sm sm:text-base font-bold text-[#121e19]">
           {lang === 'hi'
             ? `रूट ${routeNumber} पर दिन के समय अनुसार औसत भीड़`
             : `Typical crowd on route ${routeNumber} by time of day`}
         </h3>
-        <p className="text-[11px] text-slate-500 mt-0.5">
+        <p className="text-[11px] text-[#404942] mt-0.5">
           {lang === 'hi'
-            ? 'पिछले टिकट डेटा पर आधारित। कार्यदिवस और सप्ताहांत।'
-            : 'Based on past ticket data. Weekday and weekend.'}
+            ? 'पिछले टिकट डेटा पर आधारित। कार्यदिवस बनाम सप्ताहांत।'
+            : 'Based on past ticket data. Weekday vs weekend comparison.'}
         </p>
       </div>
 
-      {/* Chart with 3 colored background bands */}
-      <div className="h-48 w-full relative pt-1">
+      {/* Chart with 3 colored capacity zones */}
+      <div className="h-44 w-full relative pt-1 rounded-lg overflow-hidden bg-[#e9f7ee]/30 p-2">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 20, right: 10, left: -25, bottom: 0 }}>
-            {/* 3 Horizontal Bands: High (pink), Moderate (yellow), Low (green) */}
-            <ReferenceArea y1={70} y2={100} fill="#FEE2E2" fillOpacity={0.65} />
-            <ReferenceArea y1={35} y2={70} fill="#FEF3C7" fillOpacity={0.65} />
-            <ReferenceArea y1={0} y2={35} fill="#DCFCE7" fillOpacity={0.65} />
+            <defs>
+              <linearGradient id="crowdStitchGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#145c3a" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#145c3a" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
 
-            <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#E2E8F0" />
+            {/* 3 Horizontal Bands: High, Moderate, Low */}
+            <ReferenceArea y1={70} y2={100} fill="#ffdad6" fillOpacity={0.4} />
+            <ReferenceArea y1={35} y2={70} fill="#fef3c7" fillOpacity={0.4} />
+            <ReferenceArea y1={0} y2={35} fill="#e9f7ee" fillOpacity={0.5} />
+
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#bfc9c0" strokeWidth={0.8} />
 
             <XAxis
               dataKey="hour"
               ticks={['6 am', '9 am', '12 pm', '3 pm', '6 pm', '9 pm']}
-              tick={{ fontSize: 9.5, fill: '#64748B' }}
+              tick={{ fontSize: 10, fill: '#707971' }}
+              axisLine={{ stroke: '#d8e6dd' }}
             />
 
             <YAxis
               domain={[0, 100]}
               ticks={[18, 52, 85]}
               tickFormatter={(val) => (val >= 70 ? 'High' : val >= 35 ? 'Moderate' : 'Low')}
-              tick={{ fontSize: 9, fill: '#64748B' }}
+              tick={{ fontSize: 9.5, fill: '#707971' }}
+              axisLine={false}
             />
 
             {/* Vertical Reference Line for Selected Departure Time with Pin Tag */}
             <ReferenceLine
-              x="6 pm"
-              stroke="#1D4ED8"
-              strokeDasharray="3 3"
+              x={closestHourLabel}
+              stroke="#136c46"
+              strokeDasharray="2 2"
+              strokeWidth={1.5}
               label={{
-                value: `Your bus ${depTimeLabel}`,
+                value: `Your bus: ${depTimeLabel}`,
                 position: 'top',
-                fill: '#1E3A8A',
+                fill: '#004327',
                 fontSize: 10,
-                fontWeight: '600',
+                fontWeight: '700',
               }}
             />
 
@@ -124,10 +146,10 @@ export default function RouteCrowdingChart({
                 if (active && payload && payload.length) {
                   const d = payload[0].payload;
                   return (
-                    <div className="bg-white border border-slate-200 p-2 rounded shadow-sm text-xs space-y-0.5">
-                      <p className="font-bold text-slate-900">{d.hour}</p>
-                      <p className="text-blue-700 font-semibold">Weekday: {d.weekday}/100</p>
-                      <p className="text-slate-500">Weekend: {d.weekend}/100</p>
+                    <div className="bg-white border border-[#d8e6dd] p-2.5 rounded-lg shadow-md text-xs space-y-1">
+                      <p className="font-bold text-[#121e19]">{d.hour}</p>
+                      <p className="text-[#004327] font-semibold">Weekday: {d.weekday}/100</p>
+                      <p className="text-[#707971]">Weekend: {d.weekend}/100</p>
                     </div>
                   );
                 }
@@ -135,16 +157,16 @@ export default function RouteCrowdingChart({
               }}
             />
 
-            {/* Solid Blue Line for Weekday */}
+            {/* Solid Deep Green Line with Gradient Area for Weekday */}
             <Area
               name="Weekday"
               type="monotone"
               dataKey="weekday"
-              stroke="#1D4ED8"
-              strokeWidth={2}
-              fill="none"
+              stroke="#004327"
+              strokeWidth={2.5}
+              fill="url(#crowdStitchGrad)"
               dot={false}
-              activeDot={{ r: 4 }}
+              activeDot={{ r: 4, fill: '#004327' }}
             />
 
             {/* Dotted Line for Weekend */}
@@ -152,9 +174,9 @@ export default function RouteCrowdingChart({
               name="Weekend"
               type="monotone"
               dataKey="weekend"
-              stroke="#94A3B8"
-              strokeWidth={1.5}
-              strokeDasharray="3 3"
+              stroke="#707971"
+              strokeWidth={1.8}
+              strokeDasharray="4 3"
               dot={false}
             />
           </AreaChart>
@@ -162,27 +184,30 @@ export default function RouteCrowdingChart({
       </div>
 
       {/* Legend below chart */}
-      <div className="flex items-center gap-4 text-[11px] text-slate-500 pt-0.5">
+      <div className="flex items-center gap-4 text-xs text-[#404942] pt-0.5">
         <div className="flex items-center gap-1.5">
-          <span className="w-3.5 h-0.5 bg-blue-600 inline-block" />
-          <span>Weekday</span>
+          <span className="w-4 h-0.5 bg-[#004327] inline-block rounded-full" />
+          <span className="font-medium">Weekday</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-3.5 h-0.5 border-t border-dashed border-slate-400 inline-block" />
-          <span>Weekend</span>
+          <span className="w-4 h-0.5 border-b border-dashed border-[#707971] inline-block" />
+          <span className="font-medium text-[#707971]">Weekend</span>
         </div>
       </div>
 
-      {/* Smart Departure Recommendation Callout Box matching Screenshot 2 */}
-      <div className="bg-blue-50/80 border border-blue-200/70 rounded-md p-3 text-xs text-blue-950 space-y-0.5">
-        <h4 className="font-bold text-blue-900 text-xs">
-          {lang === 'hi' ? '30 मिनट बाद प्रस्थान करें' : 'Leave 30 minutes later'}
-        </h4>
-        <p className="text-[11px] text-blue-800/90 leading-relaxed">
-          {lang === 'hi'
-            ? 'शाम 6:30 बजे भीड़ बहुत अधिक से मध्यम स्तर पर आ जाती है। यात्रा में केवल 4 मिनट अधिक समय लगता है।'
-            : 'At 6:30 pm the crowd drops from very crowded to fairly crowded. The trip takes 4 min longer.'}
-        </p>
+      {/* Dynamic Proactive Recommendation Banner matching Stitch */}
+      <div className="bg-[#e3f1e8] border border-[#d8e6dd] rounded-lg p-3 text-xs text-[#121e19] flex items-start gap-2.5">
+        <Lightbulb className="w-5 h-5 text-[#136c46] shrink-0 mt-0.5" />
+        <div className="flex flex-col gap-0.5">
+          <span className="font-bold text-[#004327] text-xs">
+            {lang === 'hi' ? '30 मिनट बाद प्रस्थान करें' : 'Leave 30 minutes later'}
+          </span>
+          <p className="text-[11px] text-[#404942] leading-relaxed">
+            {lang === 'hi'
+              ? 'शाम 6:30 बजे भीड़ बहुत अधिक से मध्यम स्तर पर आ जाती है और निर्माण विहार के बाद सीट मिलने की संभावना बढ़ जाती है। यात्रा में केवल 4 मिनट अधिक समय लगता है।'
+              : 'At 6:30 pm, the crowd drops from very crowded to fairly crowded with seats likely after Nirman Vihar. The trip takes just 4 min longer.'}
+          </p>
+        </div>
       </div>
     </div>
   );

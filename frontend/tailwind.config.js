@@ -14,6 +14,20 @@ export default {
     },
     extend: {
       colors: {
+        primary: {
+          DEFAULT: "var(--color-primary)",
+          dark: "var(--color-primary-dark)",
+          deep: "var(--color-primary-deep)",
+          tint: "var(--color-primary-tint)",
+          container: "var(--color-primary-container)",
+        },
+        secondary: {
+          DEFAULT: "var(--color-secondary)",
+          container: "var(--color-secondary-container)",
+        },
+        tertiary: {
+          DEFAULT: "var(--color-tertiary)",
+        },
         navy: {
           DEFAULT: "var(--color-navy)",
           dark: "var(--color-navy-dark)",
@@ -33,6 +47,11 @@ export default {
         surface: {
           DEFAULT: "var(--color-surface)",
           bg: "var(--color-background)",
+          dim: "var(--color-surface-dim)",
+          low: "var(--color-surface-low)",
+          container: "var(--color-surface-container)",
+          high: "var(--color-surface-high)",
+          highest: "var(--color-surface-highest)",
         },
         border: {
           DEFAULT: "var(--color-border)",
@@ -41,6 +60,7 @@ export default {
         tx: {
           DEFAULT: "var(--color-text)",
           muted: "var(--color-text-muted)",
+          subtle: "var(--color-text-subtle)",
           inverse: "var(--color-text-inverse)",
         },
         crowd: {

@@ -12,6 +12,7 @@ import {
   Legend,
   ReferenceArea,
 } from 'recharts';
+import { ArrowDown, Users, BarChart2, ShieldCheck, Database, Info, X } from 'lucide-react';
 import { getAnalyticsSummary } from '../api';
 import CrowdIndicator from '../components/primitives/CrowdIndicator';
 import { useTranslation } from '../i18n/LanguageContext';
@@ -28,7 +29,7 @@ export default function AnalyticsPage() {
     document.title = 'Analytics | CrowdWise';
   }, []);
 
-  // Diurnal dataset matching Screenshot 3
+  // Diurnal dataset matching Stitch Screenshot 3
   const diurnalData = [
     { hour: '6 am', hourNum: 6, weekday: 26, weekend: 18 },
     { hour: '7 am', hourNum: 7, weekday: 55, weekend: 30 },
@@ -48,7 +49,7 @@ export default function AnalyticsPage() {
     { hour: '9 pm', hourNum: 21, weekday: 40, weekend: 22 },
   ];
 
-  // Most crowded routes table matching Screenshot 3
+  // Most crowded routes table matching Stitch Screenshot 3
   const peakRoutes = [
     {
       route: '73UP',
@@ -83,7 +84,7 @@ export default function AnalyticsPage() {
       dataAvailability: 'A lot of data',
     },
     {
-      route: '850DOWN',
+      route: '85DOWN',
       direction: 'Shivaji Stadium to Anand Vihar ISBT',
       peakHour: '9 am',
       crowdLevel: 'moderate',
@@ -100,7 +101,7 @@ export default function AnalyticsPage() {
     });
   }, [peakRoutes, sortField, sortAsc]);
 
-  // Comparison dataset matching Screenshot 3
+  // Comparison dataset matching Stitch Screenshot 3
   const routeComparisonData = [
     { hour: '6 am', '73UP': 24, '534': 22, '764': 20 },
     { hour: '7 am', '73UP': 54, '534': 50, '764': 46 },
@@ -153,106 +154,133 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="py-4 space-y-6 max-w-6xl mx-auto">
-      {/* Title & Scope matching Screenshot 3 */}
-      <div className="space-y-1">
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-          Analytics
-        </h1>
-        <p className="text-xs text-slate-500">
-          Crowd patterns across the routes in the ticket data. Based on past ticket data, not live conditions.
-        </p>
-        <div className="pt-1">
-          <span className="inline-block text-[11px] text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded">
-            Data: organizer ETM and e-ticketing records · sample data range · model updated with the latest data
-          </span>
+    <div className="py-2 space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Title & Scope matching Stitch Screenshot 3 */}
+      <div className="space-y-1.5 border-b border-[#d8e6dd] pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#004327] tracking-tight">
+              {lang === 'hi' ? 'एनालिटिक्स और नेटवर्क अंतर्दृष्टि' : 'Analytics & Network Insights'}
+            </h1>
+            <p className="text-sm text-[#404942] mt-1">
+              {lang === 'hi'
+                ? 'टिकट डेटा में मार्गों पर भीड़ के पैटर्न। ऐतिहासिक डेटा पर आधारित, लाइव जीपीएस नहीं।'
+                : 'Crowd patterns across routes in Delhi ticketing data. Based on past ticket data, not live vehicle telemetry.'}
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white shadow-xs border border-[#d8e6dd] text-xs font-semibold text-[#136c46]">
+            <span className="w-2 h-2 rounded-full bg-[#136c46] animate-pulse"></span>
+            <span>2.56M Historical ETM Records Indexed</span>
+          </div>
         </div>
       </div>
 
       {/* Section A: 4 Metric Cards in a single white card with hairline vertical dividers */}
-      <div className="bg-white border border-slate-200 rounded-lg shadow-xs overflow-hidden">
-        <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200">
-          <div className="p-4">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+      <div className="bg-white border border-[#d8e6dd] rounded-xl shadow-sm overflow-hidden">
+        <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#d8e6dd]">
+          <div className="p-5">
+            <span className="text-[10px] font-bold text-[#707971] uppercase tracking-wider block">
               ROUTES WITH ENOUGH DATA
             </span>
-            <span className="text-2xl font-bold text-slate-900 block mt-1">
+            <span className="text-3xl font-extrabold text-[#004327] block mt-1">
               312
             </span>
-            <span className="text-[11px] text-slate-500 block mt-0.5">
-              of the routes in the timetable
+            <span className="text-xs text-[#404942] block mt-0.5">
+              of active DTC & Cluster routes
             </span>
           </div>
 
-          <div className="p-4">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+          <div className="p-5">
+            <span className="text-[10px] font-bold text-[#707971] uppercase tracking-wider block">
               TICKET RECORDS PROCESSED
             </span>
-            <span className="text-2xl font-bold text-slate-900 block mt-1">
-              2.4 million
+            <span className="text-3xl font-extrabold text-[#004327] block mt-1">
+              2.4M
             </span>
-            <span className="text-[11px] text-slate-500 block mt-0.5">
-              after cleaning
+            <span className="text-xs text-[#404942] block mt-0.5">
+              clean trip transactions
             </span>
           </div>
 
-          <div className="p-4">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+          <div className="p-5">
+            <span className="text-[10px] font-bold text-[#707971] uppercase tracking-wider block">
               DATE RANGE
             </span>
-            <span className="text-2xl font-bold text-slate-900 block mt-1">
-              5 weeks
+            <span className="text-3xl font-extrabold text-[#004327] block mt-1">
+              5 WEEKS
             </span>
-            <span className="text-[11px] text-slate-500 block mt-0.5">
+            <span className="text-xs text-[#404942] block mt-0.5">
               weekdays and weekends
             </span>
           </div>
 
-          <div className="p-4">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-              MODEL
+          <div className="p-5">
+            <span className="text-[10px] font-bold text-[#707971] uppercase tracking-wider block">
+              PREDICTIVE MODEL
             </span>
-            <span className="text-2xl font-bold text-slate-900 block mt-1">
+            <span className="text-2xl font-extrabold text-[#004327] block mt-1 truncate">
               Random Forest
             </span>
-            <span className="text-[11px] text-slate-500 block mt-0.5">
-              compared with a simple average
+            <span className="text-xs text-[#404942] block mt-0.5">
+              benchmark vs hourly baseline
             </span>
           </div>
         </div>
       </div>
 
-      {/* Row of Two Cards: Section B & Section C matching Screenshot 3 */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
+      {/* Row of Two Cards: Section B & Section C matching Stitch Screenshot 3 */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* Left Card: When is the network busiest? (7 cols) */}
-        <div className="md:col-span-7 bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-3 flex flex-col justify-between">
+        <div className="lg:col-span-7 bg-white border border-[#d8e6dd] rounded-xl p-5 sm:p-6 shadow-sm space-y-4 flex flex-col justify-between">
           <div>
-            <h2 className="text-sm font-bold text-slate-900">
-              When is the network busiest?
-            </h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              Typical crowd level across all routes, by hour
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-[#004327]">
+                  {lang === 'hi' ? 'नेटवर्क सबसे अधिक व्यस्त कब होता है?' : 'When is the network busiest?'}
+                </h2>
+                <p className="text-xs text-[#404942] mt-0.5">
+                  Typical crowd level across all routes, by hour of day
+                </p>
+              </div>
+              <div className="flex items-center gap-3 text-xs font-semibold">
+                <span className="inline-flex items-center gap-1.5 text-[#004327]">
+                  <span className="w-3.5 h-0.5 bg-[#004327] rounded-full"></span> Weekday
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[#707971]">
+                  <span className="w-3.5 h-0.5 border-b border-dashed border-[#707971]"></span> Weekend
+                </span>
+              </div>
+            </div>
 
             {/* Line Chart with 3 colored background bands */}
-            <div className="h-52 w-full pt-2">
+            <div className="h-56 w-full pt-2 rounded-lg overflow-hidden bg-[#e9f7ee]/30 p-2">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={diurnalData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                  <ReferenceArea y1={70} y2={100} fill="#FEE2E2" fillOpacity={0.65} />
-                  <ReferenceArea y1={35} y2={70} fill="#FEF3C7" fillOpacity={0.65} />
-                  <ReferenceArea y1={0} y2={35} fill="#DCFCE7" fillOpacity={0.65} />
+                <AreaChart data={diurnalData} margin={{ top: 15, right: 10, left: -25, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="analyticsStitchGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#145c3a" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#145c3a" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
 
-                  <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#E2E8F0" />
+                  {/* 3 Capacity Zone bands */}
+                  <ReferenceArea y1={70} y2={100} fill="#ffdad6" fillOpacity={0.4} />
+                  <ReferenceArea y1={35} y2={70} fill="#fef3c7" fillOpacity={0.4} />
+                  <ReferenceArea y1={0} y2={35} fill="#e9f7ee" fillOpacity={0.5} />
+
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#bfc9c0" strokeWidth={0.8} />
                   <XAxis
                     dataKey="hour"
                     ticks={['6 am', '9 am', '12 pm', '3 pm', '6 pm', '9 pm']}
-                    tick={{ fontSize: 9.5, fill: '#64748B' }}
+                    tick={{ fontSize: 10, fill: '#707971' }}
+                    axisLine={{ stroke: '#d8e6dd' }}
                   />
                   <YAxis
                     domain={[0, 100]}
                     ticks={[18, 52, 85]}
                     tickFormatter={(v) => (v >= 70 ? 'High' : v >= 35 ? 'Moderate' : 'Low')}
-                    tick={{ fontSize: 9, fill: '#64748B' }}
+                    tick={{ fontSize: 9.5, fill: '#707971' }}
+                    axisLine={false}
                   />
 
                   <Tooltip
@@ -260,10 +288,10 @@ export default function AnalyticsPage() {
                       if (active && payload && payload.length) {
                         const d = payload[0].payload;
                         return (
-                          <div className="bg-white border border-slate-200 p-2 rounded shadow-sm text-xs space-y-0.5">
-                            <p className="font-bold text-slate-900">{d.hour}</p>
-                            <p className="text-blue-700 font-semibold">Weekday: {d.weekday}/100</p>
-                            <p className="text-slate-500">Weekend: {d.weekend}/100</p>
+                          <div className="bg-white border border-[#d8e6dd] p-2.5 rounded-lg shadow-md text-xs space-y-1">
+                            <p className="font-bold text-[#121e19]">{d.hour}</p>
+                            <p className="text-[#004327] font-semibold">Weekday Index: {d.weekday}/100</p>
+                            <p className="text-[#707971]">Weekend Index: {d.weekend}/100</p>
                           </div>
                         );
                       }
@@ -275,124 +303,161 @@ export default function AnalyticsPage() {
                     name="Weekday"
                     type="monotone"
                     dataKey="weekday"
-                    stroke="#1D4ED8"
-                    strokeWidth={2}
-                    fill="none"
+                    stroke="#004327"
+                    strokeWidth={2.5}
+                    fill="url(#analyticsStitchGrad)"
                     dot={false}
+                    activeDot={{ r: 4, fill: '#004327' }}
                   />
                   <Line
                     name="Weekend"
                     type="monotone"
                     dataKey="weekend"
-                    stroke="#94A3B8"
-                    strokeWidth={1.5}
-                    strokeDasharray="3 3"
+                    stroke="#707971"
+                    strokeWidth={1.8}
+                    strokeDasharray="4 3"
                     dot={false}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-
-            {/* Legend */}
-            <div className="flex items-center gap-4 text-[11px] text-slate-500 pt-1">
-              <div className="flex items-center gap-1.5">
-                <span className="w-3.5 h-0.5 bg-blue-600 inline-block" />
-                <span>Weekday</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3.5 h-0.5 border-t border-dashed border-slate-400 inline-block" />
-                <span>Weekend</span>
-              </div>
-            </div>
           </div>
 
-          <p className="text-[11px] text-slate-600 pt-2 border-t border-slate-100">
-            Weekday crowding peaks around 9 am and 6 pm. Weekends stay flatter, with a small bump around midday.
-          </p>
+          {/* Takeaway callout box */}
+          <div className="bg-[#e9f7ee] p-3 rounded-lg border border-[#d8e6dd]">
+            <p className="text-xs text-[#121e19] leading-snug">
+              <strong className="font-bold text-[#004327]">Weekday crowding peaks sharply at 9 am and 6 pm.</strong>{' '}
+              Weekends stay noticeably flatter, with only a moderate bump around midday leisure hours.
+            </p>
+          </div>
         </div>
 
         {/* Right Card: How are crowd levels spread? (5 cols) */}
-        <div className="md:col-span-5 bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-4 flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-white border border-[#d8e6dd] rounded-xl p-5 sm:p-6 shadow-sm space-y-4 flex flex-col justify-between">
           <div>
-            <h2 className="text-sm font-bold text-slate-900">
-              How are crowd levels spread?
+            <h2 className="text-base sm:text-lg font-bold text-[#004327]">
+              {lang === 'hi' ? 'भीड़ का वितरण कैसा है?' : 'How are crowd levels spread?'}
             </h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              Share of route and hour slots at each level
+            <p className="text-xs text-[#404942] mt-0.5">
+              Share of total route and hour slots in the dataset
             </p>
 
             {/* Horizontal Segmented Bar: 52% Green, 33% Yellow, 15% Red */}
-            <div className="h-4 w-full flex rounded-xs overflow-hidden mt-6 mb-4">
-              <div style={{ width: '52%' }} className="bg-emerald-600" title="52% Not crowded" />
-              <div style={{ width: '33%' }} className="bg-amber-500" title="33% Fairly crowded" />
-              <div style={{ width: '15%' }} className="bg-red-600" title="15% Very crowded" />
+            <div className="w-full flex h-6 rounded-md overflow-hidden shadow-inner my-4">
+              <div
+                style={{ width: '52%' }}
+                className="bg-[#25865a] transition-all hover:opacity-90 flex items-center justify-center text-[10px] font-bold text-white tracking-wide"
+                title="52% Not crowded"
+              >
+                52%
+              </div>
+              <div
+                style={{ width: '33%' }}
+                className="bg-[#e0a51a] transition-all hover:opacity-90 flex items-center justify-center text-[10px] font-bold text-white tracking-wide"
+                title="33% Fairly crowded"
+              >
+                33%
+              </div>
+              <div
+                style={{ width: '15%' }}
+                className="bg-[#c64b4b] transition-all hover:opacity-90 flex items-center justify-center text-[10px] font-bold text-white tracking-wide"
+                title="15% Very crowded"
+              >
+                15%
+              </div>
             </div>
 
-            {/* Legend list with person icons matching Screenshot 3 */}
-            <div className="space-y-2 text-xs pt-2">
-              <div className="flex items-center justify-between">
-                <CrowdIndicator category="low" size="sm" />
-                <span className="font-bold text-slate-900 tabular-nums">52%</span>
+            {/* Breakdown Legend Rows matching Stitch Screenshot 3 */}
+            <div className="flex flex-col gap-2.5 mt-4">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#e9f7ee]/60 border border-[#d8e6dd]/60">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-3 h-3 rounded-full bg-[#25865a]"></div>
+                  <div className="flex items-center gap-1 text-xs text-[#121e19] font-semibold">
+                    <Users className="w-3.5 h-3.5 text-[#25865a]" />
+                    <span>Not crowded</span>
+                  </div>
+                </div>
+                <span className="text-base font-extrabold text-[#004327]">52%</span>
               </div>
-              <div className="flex items-center justify-between">
-                <CrowdIndicator category="moderate" size="sm" />
-                <span className="font-bold text-slate-900 tabular-nums">33%</span>
+
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#e9f7ee]/60 border border-[#d8e6dd]/60">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-3 h-3 rounded-full bg-[#e0a51a]"></div>
+                  <div className="flex items-center gap-1 text-xs text-[#121e19] font-semibold">
+                    <Users className="w-3.5 h-3.5 text-[#e0a51a]" />
+                    <span>Fairly crowded</span>
+                  </div>
+                </div>
+                <span className="text-base font-extrabold text-[#004327]">33%</span>
               </div>
-              <div className="flex items-center justify-between">
-                <CrowdIndicator category="high" size="sm" />
-                <span className="font-bold text-slate-900 tabular-nums">15%</span>
+
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#e9f7ee]/60 border border-[#d8e6dd]/60">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-3 h-3 rounded-full bg-[#c64b4b]"></div>
+                  <div className="flex items-center gap-1 text-xs text-[#121e19] font-semibold">
+                    <Users className="w-3.5 h-3.5 text-[#c64b4b]" />
+                    <span>Very crowded</span>
+                  </div>
+                </div>
+                <span className="text-base font-extrabold text-[#004327]">15%</span>
               </div>
             </div>
           </div>
 
-          <p className="text-[10px] text-slate-400 pt-2 border-t border-slate-100">
-            Levels are relative to other route and hour slots in the data. They are not seat counts.
+          <p className="text-[11px] text-[#707971] pt-2 border-t border-[#d8e6dd] leading-relaxed">
+            Levels are relative to other route and hour slots in the data. They reflect probabilistic capacity tiers, not absolute standing passenger counts.
           </p>
         </div>
       </div>
 
-      {/* Section D: Which routes are most crowded at peak? matching Screenshot 3 */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-3">
-        <div className="flex items-center justify-between">
+      {/* Section D: Which routes are most crowded at peak? matching Stitch Screenshot 3 */}
+      <div className="bg-white border border-[#d8e6dd] rounded-xl shadow-sm overflow-hidden flex flex-col">
+        <div className="p-5 sm:p-6 flex flex-wrap items-center justify-between gap-3 border-b border-[#d8e6dd]">
           <div>
-            <h2 className="text-sm font-bold text-slate-900">
-              Which routes are most crowded at peak?
+            <h2 className="text-base sm:text-lg font-bold text-[#004327]">
+              {lang === 'hi' ? 'पीक समय में कौन से रूट सबसे अधिक भरे होते हैं?' : 'Which routes are most crowded at peak?'}
             </h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              Weekday evening peak · sortable
+            <p className="text-xs text-[#404942] mt-0.5">
+              Weekday evening peak • Ranked by operational occupancy index
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShow24hModal(true)}
-            className="text-xs font-semibold text-blue-700 hover:underline"
-          >
-            View 24h Route Profile →
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShow24hModal(true)}
+              className="px-3 py-1.5 rounded-lg border border-[#d8e6dd] text-xs font-semibold text-[#004327] hover:bg-[#e9f7ee] transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <BarChart2 className="w-3.5 h-3.5" />
+              <span>View 24h Route Profile</span>
+            </button>
+          </div>
         </div>
 
-        {/* Clean Table with hairline dividers */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+        {/* Clean Responsive Table matching Stitch */}
+        <div className="w-full overflow-x-auto">
+          <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
-                <th className="py-2 px-2.5">ROUTE</th>
-                <th className="py-2 px-2.5">DIRECTION</th>
-                <th className="py-2 px-2.5">PEAK HOUR</th>
-                <th className="py-2 px-2.5">CROWD LEVEL</th>
+              <tr className="bg-[#e9f7ee] text-[#404942] text-[11px] uppercase tracking-wider font-bold">
+                <th className="py-3 px-5">Route</th>
+                <th className="py-3 px-4">Direction</th>
+                <th className="py-3 px-4">Peak Hour</th>
+                <th className="py-3 px-4">Crowd Level</th>
                 <th
                   onClick={() => {
                     setSortField('rci');
                     setSortAsc(!sortAsc);
                   }}
-                  className="py-2 px-2.5 cursor-pointer hover:text-slate-800"
+                  className="py-3 px-4 cursor-pointer hover:text-[#004327]"
                 >
-                  RELATIVE CROWDING {sortField === 'rci' ? (sortAsc ? '↑' : '↓') : ''}
+                  <span className="flex items-center gap-1">
+                    Relative Crowding
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </span>
                 </th>
-                <th className="py-2 px-2.5">DATA</th>
+                <th className="py-3 px-5">Data Confidence</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#d8e6dd] text-[#121e19]">
               {sortedPeakRoutes.map((r) => (
                 <tr
                   key={r.route}
@@ -400,34 +465,37 @@ export default function AnalyticsPage() {
                     setActiveProfileRoute(r.route);
                     setShow24hModal(true);
                   }}
-                  className="hover:bg-slate-50/70 cursor-pointer transition-colors"
+                  className="hover:bg-[#e9f7ee]/40 cursor-pointer transition-colors"
                 >
-                  <td className="py-2.5 px-2.5">
-                    <span className="bg-slate-900 text-white font-mono font-bold text-xs px-2 py-0.5 rounded">
+                  <td className="py-3.5 px-5">
+                    <span className="inline-flex items-center justify-center px-2.5 py-1 rounded bg-[#004327] text-white font-bold font-mono text-xs tracking-wider">
                       {r.route}
                     </span>
                   </td>
-                  <td className="py-2.5 px-2.5 font-medium text-slate-800">
+                  <td className="py-3.5 px-4 font-semibold text-[#121e19]">
                     {r.direction}
                   </td>
-                  <td className="py-2.5 px-2.5 text-slate-600">
+                  <td className="py-3.5 px-4 text-[#404942] font-medium">
                     {r.peakHour}
                   </td>
-                  <td className="py-2.5 px-2.5">
+                  <td className="py-3.5 px-4">
                     <CrowdIndicator category={r.crowdLevel} size="sm" />
                   </td>
-                  <td className="py-2.5 px-2.5">
-                    <div className="w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <td className="py-3.5 px-4 w-48">
+                    <div className="w-full bg-[#d8e6dd] rounded-full h-2.5 overflow-hidden">
                       <div
                         style={{ width: `${r.rci}%` }}
-                        className={`h-full ${
-                          r.crowdLevel === 'high' ? 'bg-red-600' : 'bg-amber-500'
+                        className={`h-full rounded-full ${
+                          r.crowdLevel === 'high' ? 'bg-[#c64b4b]' : 'bg-[#e0a51a]'
                         }`}
                       />
                     </div>
                   </td>
-                  <td className="py-2.5 px-2.5 text-slate-500 text-[11px]">
-                    {r.dataAvailability}
+                  <td className="py-3.5 px-5">
+                    <span className="inline-flex items-center gap-1 text-[#404942] text-xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#136c46]"></span>
+                      {r.dataAvailability}
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -436,63 +504,61 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Section E: How do selected routes compare? matching Screenshot 3 */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      {/* Section E: How do selected routes compare? matching Stitch Screenshot 3 */}
+      <div className="bg-white border border-[#d8e6dd] rounded-xl p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-bold text-slate-900">
-              How do selected routes compare?
+            <h2 className="text-base sm:text-lg font-bold text-[#004327]">
+              {lang === 'hi' ? 'चयनित रूट कैसे तुलना करते हैं?' : 'How do selected routes compare?'}
             </h2>
+            <p className="text-xs text-[#404942] mt-0.5">
+              Normalized crowding load curves across service operational hours
+            </p>
           </div>
 
-          {/* Route Buttons [73UP] [534] [764] [+ Add route] */}
+          {/* Route Selector Chips */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            {['73UP', '534', '764', '850DOWN'].map((r) => {
+            {['73UP', '534', '764', '85DOWN'].map((r) => {
               const isSel = selectedRoutes.includes(r);
               return (
                 <button
                   key={r}
                   type="button"
                   onClick={() => toggleRoute(r)}
-                  className={`px-2.5 py-1 rounded text-xs font-mono font-bold transition-all ${
+                  className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
                     isSel
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? 'bg-[#004327] text-white shadow-xs'
+                      : 'bg-[#e9f7ee] text-[#121e19] hover:bg-[#d8e6dd]'
                   }`}
                 >
                   {r}
                 </button>
               );
             })}
-            <button
-              type="button"
-              onClick={() => toggleRoute('429')}
-              className="px-2.5 py-1 rounded text-xs text-slate-500 border border-dashed border-slate-300 hover:border-slate-400"
-            >
-              + Add route
-            </button>
           </div>
         </div>
 
         {/* Multi-Line Comparison Chart */}
-        <div className="h-56 w-full pt-1">
+        <div className="h-56 w-full pt-1 rounded-lg overflow-hidden bg-[#e9f7ee]/30 p-2">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={routeComparisonData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-              <ReferenceArea y1={70} y2={100} fill="#FEE2E2" fillOpacity={0.65} />
-              <ReferenceArea y1={35} y2={70} fill="#FEF3C7" fillOpacity={0.65} />
-              <ReferenceArea y1={0} y2={35} fill="#DCFCE7" fillOpacity={0.65} />
+            <LineChart data={routeComparisonData} margin={{ top: 15, right: 10, left: -25, bottom: 0 }}>
+              <ReferenceArea y1={70} y2={100} fill="#ffdad6" fillOpacity={0.4} />
+              <ReferenceArea y1={35} y2={70} fill="#fef3c7" fillOpacity={0.4} />
+              <ReferenceArea y1={0} y2={35} fill="#e9f7ee" fillOpacity={0.5} />
 
-              <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#E2E8F0" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#bfc9c0" strokeWidth={0.8} />
               <XAxis
                 dataKey="hour"
                 ticks={['6 am', '9 am', '12 pm', '3 pm', '6 pm', '9 pm']}
-                tick={{ fontSize: 9.5, fill: '#64748B' }}
+                tick={{ fontSize: 10, fill: '#707971' }}
+                axisLine={{ stroke: '#d8e6dd' }}
               />
               <YAxis
                 domain={[0, 100]}
                 ticks={[18, 52, 85]}
                 tickFormatter={(v) => (v >= 70 ? 'High' : v >= 35 ? 'Moderate' : 'Low')}
-                tick={{ fontSize: 9, fill: '#64748B' }}
+                tick={{ fontSize: 9.5, fill: '#707971' }}
+                axisLine={false}
               />
 
               <Tooltip
@@ -500,10 +566,10 @@ export default function AnalyticsPage() {
                   if (active && payload && payload.length) {
                     const h = payload[0].payload.hour;
                     return (
-                      <div className="bg-white border border-slate-200 p-2 rounded shadow-sm text-xs space-y-1">
-                        <p className="font-bold text-slate-900">{h}</p>
+                      <div className="bg-white border border-[#d8e6dd] p-2.5 rounded-lg shadow-md text-xs space-y-1">
+                        <p className="font-bold text-[#121e19]">{h}</p>
                         {payload.map((entry) => (
-                          <div key={entry.name} className="flex justify-between gap-3 text-[11px]">
+                          <div key={entry.name} className="flex justify-between gap-3 text-xs">
                             <span style={{ color: entry.stroke }} className="font-semibold">{entry.name}:</span>
                             <span className="font-bold">{entry.value}/100</span>
                           </div>
@@ -520,8 +586,8 @@ export default function AnalyticsPage() {
                   type="monotone"
                   dataKey="73UP"
                   name="73UP"
-                  stroke="#1D4ED8"
-                  strokeWidth={2}
+                  stroke="#004327"
+                  strokeWidth={2.5}
                   dot={false}
                 />
               )}
@@ -530,8 +596,8 @@ export default function AnalyticsPage() {
                   type="monotone"
                   dataKey="534"
                   name="534"
-                  stroke="#0F172A"
-                  strokeWidth={2}
+                  stroke="#136c46"
+                  strokeWidth={2.5}
                   dot={false}
                 />
               )}
@@ -540,18 +606,19 @@ export default function AnalyticsPage() {
                   type="monotone"
                   dataKey="764"
                   name="764"
-                  stroke="#64748B"
+                  stroke="#e0a51a"
                   strokeWidth={2}
                   dot={false}
                 />
               )}
-              {selectedRoutes.includes('850DOWN') && (
+              {selectedRoutes.includes('85DOWN') && (
                 <Line
                   type="monotone"
-                  dataKey="850DOWN"
-                  name="850DOWN"
-                  stroke="#0D9488"
+                  dataKey="85DOWN"
+                  name="85DOWN"
+                  stroke="#707971"
                   strokeWidth={2}
+                  strokeDasharray="4 3"
                   dot={false}
                 />
               )}
@@ -559,126 +626,126 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Legend matching Screenshot 3 */}
-        <div className="flex items-center gap-4 text-[11px] text-slate-500 pt-1">
+        {/* Legend */}
+        <div className="flex items-center gap-4 text-xs text-[#404942] pt-1">
           {selectedRoutes.map((r) => (
             <div key={r} className="flex items-center gap-1.5">
               <span
-                className="w-3.5 h-0.5 inline-block"
+                className="w-3.5 h-1 inline-block rounded-full"
                 style={{
                   backgroundColor:
-                    r === '73UP' ? '#1D4ED8' : r === '534' ? '#0F172A' : '#64748B',
+                    r === '73UP' ? '#004327' : r === '534' ? '#136c46' : r === '764' ? '#e0a51a' : '#707971',
                 }}
               />
-              <span>{r}</span>
+              <span className="font-semibold">{r}</span>
             </div>
           ))}
         </div>
 
-        <p className="text-[11px] text-slate-600 pt-2 border-t border-slate-100">
-          534 and 73UP reach the highest crowd levels in the evening. 764 stays mostly in the moderate band.
+        <p className="text-xs text-[#404942] pt-2 border-t border-[#d8e6dd]">
+          534 and 73UP reach peak crowd levels in the evening rush hour. 764 maintains predominantly moderate volumes across midday.
         </p>
       </div>
 
-      {/* Section G: Model vs Simple Average (from prompt requirements) */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-3">
-        <h2 className="text-sm font-bold text-slate-900">
-          Model vs Simple Average (Held-Out Evaluation)
+      {/* Section F: Model Evaluation Benchmark Table */}
+      <div className="bg-white border border-[#d8e6dd] rounded-xl p-5 sm:p-6 shadow-sm space-y-3">
+        <h2 className="text-base sm:text-lg font-bold text-[#004327]">
+          {lang === 'hi' ? 'मॉडल मूल्यांकन और सत्यापन (हेल्ड-आउट डेटा)' : 'Model vs Simple Average (Held-Out Evaluation)'}
         </h2>
-        <p className="text-[11px] text-slate-500">
-          Comparison evaluated on unseen test data from the final week of October 2026.
+        <p className="text-xs text-[#404942]">
+          Rigorous out-of-sample evaluation on unseen historical Delhi bus passenger logs.
         </p>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
-                <th className="py-2 px-2.5">METHOD</th>
-                <th className="py-2 px-2.5">MAE (MEAN ERROR)</th>
-                <th className="py-2 px-2.5">RMSE</th>
-                <th className="py-2 px-2.5">RANKING MATCH</th>
-                <th className="py-2 px-2.5">LEVEL MATCH</th>
+              <tr className="bg-[#e9f7ee] text-[#404942] text-[10px] uppercase font-bold tracking-wider">
+                <th className="py-2.5 px-4">METHOD</th>
+                <th className="py-2.5 px-4">MAE (MEAN ERROR)</th>
+                <th className="py-2.5 px-4">RMSE</th>
+                <th className="py-2.5 px-4">RANKING MATCH</th>
+                <th className="py-2.5 px-4">LEVEL MATCH</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#d8e6dd]">
               <tr>
-                <td className="py-2.5 px-2.5 font-bold text-slate-800">Simple average</td>
-                <td className="py-2.5 px-2.5 tabular-nums">0.31</td>
-                <td className="py-2.5 px-2.5 tabular-nums">0.42</td>
-                <td className="py-2.5 px-2.5 tabular-nums">0.62</td>
-                <td className="py-2.5 px-2.5 tabular-nums font-semibold">56%</td>
+                <td className="py-3 px-4 font-bold text-[#121e19]">Historical Average Baseline</td>
+                <td className="py-3 px-4 tabular-nums">0.31</td>
+                <td className="py-3 px-4 tabular-nums">0.42</td>
+                <td className="py-3 px-4 tabular-nums">0.62</td>
+                <td className="py-3 px-4 tabular-nums font-semibold">56%</td>
               </tr>
-              <tr>
-                <td className="py-2.5 px-2.5 font-bold text-blue-900">Random Forest (ML)</td>
-                <td className="py-2.5 px-2.5 tabular-nums font-semibold text-emerald-700">0.24</td>
-                <td className="py-2.5 px-2.5 tabular-nums font-semibold text-emerald-700">0.33</td>
-                <td className="py-2.5 px-2.5 tabular-nums font-semibold text-emerald-700">0.74</td>
-                <td className="py-2.5 px-2.5 tabular-nums font-bold text-emerald-700">67%</td>
+              <tr className="bg-[#e9f7ee]/30">
+                <td className="py-3 px-4 font-bold text-[#004327]">Random Forest (CrowdWise ML)</td>
+                <td className="py-3 px-4 tabular-nums font-semibold text-[#136c46]">0.24</td>
+                <td className="py-3 px-4 tabular-nums font-semibold text-[#136c46]">0.33</td>
+                <td className="py-3 px-4 tabular-nums font-semibold text-[#136c46]">0.74</td>
+                <td className="py-3 px-4 tabular-nums font-bold text-[#004327]">67%</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Section F: 24h Route Profile Modal */}
+      {/* Section G: 24h Route Profile Modal */}
       {show24hModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white border border-slate-200 rounded-xl p-5 max-w-2xl w-full shadow-xl space-y-4 animate-scale-up">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div className="bg-white border border-[#d8e6dd] rounded-2xl p-6 max-w-2xl w-full shadow-2xl space-y-4 animate-scale-up">
+            <div className="flex items-center justify-between border-b border-[#d8e6dd] pb-3">
               <div>
-                <h3 className="text-base font-bold text-slate-900">
+                <h3 className="text-lg font-bold text-[#004327]">
                   24-Hour Route Profile: Route {activeProfileRoute}
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[#404942]">
                   Hourly historical passenger boardings (ETM) vs estimated onboard load
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShow24hModal(false)}
-                className="text-slate-400 hover:text-slate-700 text-lg font-bold px-2 py-1"
+                className="text-[#707971] hover:text-[#121e19] p-1 rounded-lg hover:bg-[#e9f7ee] transition-colors"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={route24hData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#64748B' }} />
-                  <YAxis tick={{ fontSize: 10, fill: '#64748B' }} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#bfc9c0" strokeWidth={0.8} />
+                  <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#707971' }} />
+                  <YAxis tick={{ fontSize: 10, fill: '#707971' }} />
                   <Tooltip />
                   <Legend />
                   <Area
                     name="Boardings (Tickets/hr)"
                     type="monotone"
                     dataKey="boardings"
-                    stroke="#0284C7"
-                    fill="#E0F2FE"
+                    stroke="#136c46"
+                    fill="#e9f7ee"
                   />
                   <Line
                     name="Estimated Onboard (RCI)"
                     type="monotone"
                     dataKey="onboard"
-                    stroke="#15803D"
-                    strokeWidth={2}
+                    stroke="#004327"
+                    strokeWidth={2.5}
                     dot={false}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="bg-slate-50 p-3 rounded-lg text-xs text-slate-600 leading-relaxed">
-              <strong>Distinction Note: </strong>
-              Passenger boardings represent raw conductor tickets issued per hour at stops along {activeProfileRoute}. Onboard load represents the alighting-reconstructed passenger accumulation traveling on the bus at any given point.
+            <div className="bg-[#e9f7ee] p-3.5 rounded-xl border border-[#d8e6dd] text-xs text-[#121e19] leading-relaxed">
+              <strong className="text-[#004327]">Methodology Note: </strong>
+              Passenger boardings represent raw conductor electronic tickets issued per hour along {activeProfileRoute}. Onboard load represents the alighting-reconstructed passenger accumulation traveling on the bus across stop segments.
             </div>
 
             <div className="text-right">
               <button
                 type="button"
                 onClick={() => setShow24hModal(false)}
-                className="px-4 py-1.5 rounded-md bg-slate-900 text-white text-xs font-semibold"
+                className="px-5 py-2 rounded-lg bg-[#004327] text-white text-xs font-bold hover:bg-[#0b422b] transition-colors cursor-pointer"
               >
                 Close
               </button>

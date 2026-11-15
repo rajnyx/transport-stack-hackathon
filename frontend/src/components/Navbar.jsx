@@ -1,6 +1,5 @@
 import React from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { User } from 'lucide-react';
 import AppLogo from './AppLogo';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -10,69 +9,67 @@ export default function Navbar() {
   const isLanding = location.pathname === '/';
 
   const navLinkClass = ({ isActive }) =>
-    `text-xs sm:text-sm font-medium transition-colors ${
+    `text-xs sm:text-sm font-semibold px-3.5 py-1.5 rounded-full transition-all ${
       isActive
-        ? 'text-slate-900 font-bold border-b-2 border-slate-900 pb-1'
-        : 'text-slate-600 hover:text-slate-900 pb-1'
+        ? 'bg-[#145C3A] text-white shadow-xs'
+        : 'text-[#121E19] hover:text-[#145C3A] hover:bg-[#E9F7EE]'
     }`;
 
   const mobileNavLinkClass = ({ isActive }) =>
     `flex flex-col items-center justify-center flex-1 h-full min-h-[48px] py-1 text-xs select-none ${
-      isActive ? 'text-emerald-700 font-bold' : 'text-slate-500 font-medium'
+      isActive ? 'text-[#145C3A] font-bold' : 'text-[#707971] font-medium'
     }`;
 
   return (
     <>
-      <header className="bg-white/95 backdrop-blur-xs border-b border-slate-200 sticky top-0 z-30 h-14">
+      <header className="bg-white/95 backdrop-blur-xs border-b border-[#D8E6DD] sticky top-0 z-30 h-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
           {/* Logo */}
           <Link
             to="/"
-            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 rounded"
-            aria-label="Delhi Bus / CrowdWise Home"
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#145C3A] rounded"
+            aria-label="CrowdWise Delhi Home"
           >
-            <AppLogo isLanding={isLanding} />
+            <AppLogo />
           </Link>
 
-          {/* Desktop Navigation Links matching Screenshot 1 & 2 */}
-          <div className="hidden sm:flex items-center gap-6">
-            <nav className="flex items-center gap-6">
+          {/* Desktop Navigation Links matching Stitch Reference */}
+          <div className="hidden md:flex items-center gap-5">
+            <nav className="flex items-center gap-2">
               <NavLink to="/" end className={navLinkClass}>
                 {lang === 'hi' ? 'यात्रा योजना' : 'Plan Journey'}
               </NavLink>
               <NavLink
-                to="/results?origin_id=8256&dest_id=365&origin_name=Anand+Vihar+ISBT&dest_name=Shivaji+Stadium+Terminal+(Connaught+Place)"
+                to="/results?origin_id=8256&dest_id=365&origin_name=Anand+Vihar+ISBT&dest_name=Shivaji+Stadium+Terminal+(Connaught+Place)&departure_time=18:00&preference=fastest"
                 className={navLinkClass}
               >
-                {lang === 'hi' ? 'लाइव मैप' : 'Live Map'}
+                {lang === 'hi' ? 'यात्रा परिणाम' : 'Journey Results'}
               </NavLink>
               <NavLink to="/analytics" className={navLinkClass}>
                 {lang === 'hi' ? 'एनालिटिक्स' : 'Analytics'}
               </NavLink>
               <NavLink to="/about" className={navLinkClass}>
-                {lang === 'hi' ? 'डेटा और पद्धति' : 'Data & method'}
+                {lang === 'hi' ? 'डेटा और पद्धति' : 'Data & Method'}
               </NavLink>
             </nav>
+
+            {/* Live Feed Status Pill */}
+            <div className="hidden lg:flex items-center gap-1.5 bg-[#E9F7EE] text-[#145C3A] text-xs font-semibold px-3 py-1.5 rounded-full border border-[#D8E6DD]">
+              <span className="w-2 h-2 rounded-full bg-[#15803D] animate-pulse" />
+              <span>Delhi Transit Feed Active</span>
+            </div>
 
             {/* Language Switcher (EN | HI) */}
             <button
               type="button"
               onClick={toggleLang}
-              className="text-xs font-semibold px-2.5 py-1 rounded border border-slate-200 text-slate-700 hover:border-slate-300 transition-colors flex items-center gap-1"
+              className="text-xs font-bold px-2.5 py-1 rounded-md border border-[#D8E6DD] text-[#121E19] hover:bg-[#E9F7EE] transition-colors flex items-center gap-1 cursor-pointer"
               aria-label={`Switch to ${lang === 'en' ? 'Hindi' : 'English'}`}
             >
-              <span className={lang === 'en' ? 'font-bold text-slate-900' : 'text-slate-500'}>EN</span>
-              <span className="text-slate-300">|</span>
-              <span className={lang === 'hi' ? 'font-bold text-slate-900' : 'text-slate-500'}>HI</span>
+              <span className={lang === 'en' ? 'font-black text-[#145C3A]' : 'text-[#707971]'}>EN</span>
+              <span className="text-[#D8E6DD]">|</span>
+              <span className={lang === 'hi' ? 'font-black text-[#145C3A]' : 'text-[#707971]'}>HI</span>
             </button>
-
-            {/* User Profile Avatar Circle (from Screenshot 1) */}
-            <div
-              className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center shrink-0 cursor-pointer shadow-xs hover:opacity-90 transition-opacity"
-              title="User Account"
-            >
-              <User className="w-4 h-4 text-white" />
-            </div>
           </div>
         </div>
       </header>

@@ -4,23 +4,38 @@
  */
 
 :root {
-  /* Core Brand Colors (Authoritative Navy for chrome, Energetic Teal for actions) */
-  --color-navy: #142B3B;
-  --color-navy-dark: #0E1F2B;
-  --color-teal: #008A87;
-  --color-teal-hover: #006D6B;
-  --color-teal-tint: #E6F7F7;
+  /* Stitch Civic Transit Brand Colors (Deep Forest Green, Dark Green, Mint Tint) */
+  --color-primary: #145C3A;
+  --color-primary-dark: #0B422B;
+  --color-primary-deep: #004327;
+  --color-primary-tint: #EFFDF4;
+  --color-secondary: #136C46;
+  --color-secondary-container: #9FF1C1;
+  --color-tertiary: #0B422B;
+
+  /* Aliases for backwards compatibility with existing UI primitives */
+  --color-teal: #145C3A;
+  --color-teal-hover: #0B422B;
+  --color-teal-tint: #EFFDF4;
+  --color-navy: #004327;
+  --color-navy-dark: #0B422B;
   --color-accent-gold: #FFA800;
 
-  /* Surfaces & Clean Light Background */
-  --color-background: #F5F7FA;
+  /* Surfaces & Clean Light Backgrounds (Google Stitch Civic Transit) */
+  --color-background: #EFFDF4;
   --color-surface: #FFFFFF;
-  --color-border: #E2E8F0;
-  --color-border-subtle: #EDF2F7;
+  --color-surface-dim: #D0DDD5;
+  --color-surface-low: #E9F7EE;
+  --color-surface-container: #E3F1E8;
+  --color-surface-high: #DEEBE3;
+  --color-surface-highest: #D8E6DD;
+  --color-border: #D8E6DD;
+  --color-border-subtle: #E9F7EE;
 
-  /* Typography / Text Colors (Contrast >= 7:1 for key text) */
-  --color-text: #142B3B;
-  --color-text-muted: #5F6B73;
+  /* Typography / Text Colors */
+  --color-text: #121E19;
+  --color-text-muted: #404942;
+  --color-text-subtle: #707971;
   --color-text-inverse: #FFFFFF;
 
   /* Semantic Crowdedness Status Colors (All >= 4.5:1 against white) */
@@ -42,20 +57,20 @@
   --color-crowd-unknown-border: #E2E8F0;
 
   /* Focus Ring */
-  --color-focus-ring: #008A87;
+  --color-focus-ring: #145C3A;
 
-  /* Radius Tokens (From design.md: lg=16px for cards, full=9999px for buttons/chips/badges) */
-  --radius-control: 10px;
+  /* Radius Tokens */
+  --radius-control: 8px;
   --radius-panel: 16px;
   --radius-badge: 9999px;
   --radius-chip: 9999px;
-  --radius-button: 9999px;
+  --radius-button: 8px;
 
-  /* Elevation / Shadows (Soft tactile transit elevation for overlays) */
-  --shadow-card: 0 2px 8px rgba(20, 43, 59, 0.04);
-  --shadow-overlay: 0 8px 24px rgba(20, 43, 59, 0.08);
+  /* Elevation / Shadows */
+  --shadow-card: 0 1px 3px rgba(18, 30, 25, 0.05), 0 1px 2px rgba(18, 30, 25, 0.03);
+  --shadow-overlay: 0 10px 25px -5px rgba(18, 30, 25, 0.08), 0 8px 10px -6px rgba(18, 30, 25, 0.04);
 
-  /* Motion Tokens (Animate ONLY transform & opacity, 120ms to 280ms) */
+  /* Motion Tokens */
   --duration-fast: 120ms;
   --duration-medium: 200ms;
   --duration-slow: 280ms;

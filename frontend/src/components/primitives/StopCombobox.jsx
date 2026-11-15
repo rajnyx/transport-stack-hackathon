@@ -253,13 +253,7 @@ export default function StopCombobox({
         ) : null}
       </div>
 
-      {/* Helpful shortcut hint for users */}
-      <div className="text-[11px] text-tx-muted flex items-center gap-1 mt-0.5 px-0.5 select-none">
-        <span className="text-teal font-bold">💡</span>
-        <span>
-          Type shortcuts like <strong className="text-navy font-semibold">'CP'</strong>, <strong className="text-navy font-semibold">'ISBT'</strong>, <strong className="text-navy font-semibold">'AIIMS'</strong>, or pick a suggested hub
-        </span>
-      </div>
+
 
       {error && <p className="text-xs text-[#C8372D] font-medium mt-0.5">{error}</p>}
 
