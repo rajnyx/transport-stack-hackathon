@@ -2,335 +2,690 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   AreaChart,
   Area,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   Legend,
+  ReferenceArea,
 } from 'recharts';
-import { getAnalyticsSummary, getDailyVolume } from '../api';
-import RouteBadge from '../components/primitives/RouteBadge';
-import CrowdStrip, { normalizeCrowdCategory } from '../components/primitives/CrowdStrip';
+import { getAnalyticsSummary } from '../api';
+import CrowdIndicator from '../components/primitives/CrowdIndicator';
 import { useTranslation } from '../i18n/LanguageContext';
 
 export default function AnalyticsPage() {
-  const { t, lang } = useTranslation();
-  const [summary, setSummary] = useState(null);
-  const [dailyVolume, setDailyVolume] = useState([]);
-  const [sortField, setSortField] = useState('avg_peak_rci');
+  const { lang } = useTranslation();
+  const [selectedRoutes, setSelectedRoutes] = useState(['73UP', '534', '764']);
+  const [activeProfileRoute, setActiveProfileRoute] = useState('73UP');
+  const [show24hModal, setShow24hModal] = useState(false);
+  const [sortField, setSortField] = useState('rci');
   const [sortAsc, setSortAsc] = useState(false);
 
   useEffect(() => {
-    document.title = lang === 'hi' ? 'दिल्ली बस नेटवर्क विश्लेषण | CrowdWise' : 'Network Analytics | CrowdWise Delhi';
-  }, [lang]);
-
-  useEffect(() => {
-    Promise.all([
-      getAnalyticsSummary().catch(() => ({ data: null })),
-      getDailyVolume().catch(() => ({ data: [] })),
-    ]).then(([sumRes, volRes]) => {
-      if (sumRes?.data) setSummary(sumRes.data);
-      if (volRes?.data && volRes.data.length > 0) {
-        setDailyVolume(volRes.data);
-      }
-    });
+    document.title = 'Analytics | CrowdWise';
   }, []);
 
-  // 24-hour network diurnal demand curves
+  // Diurnal dataset matching Screenshot 3
   const diurnalData = [
-    { hour: '05:00', weekday: 12.0, weekend: 7.2 },
-    { hour: '06:00', weekday: 28.5, weekend: 16.0 },
-    { hour: '07:00', weekday: 58.2, weekend: 32.5 },
-    { hour: '08:00', weekday: 82.4, weekend: 48.0 },
-    { hour: '09:00', weekday: 88.2, weekend: 55.4 },
-    { hour: '10:00', weekday: 80.5, weekend: 56.0 },
-    { hour: '11:00', weekday: 62.0, weekend: 48.0 },
-    { hour: '12:00', weekday: 48.5, weekend: 43.0 },
-    { hour: '13:00', weekday: 44.0, weekend: 41.0 },
-    { hour: '14:00', weekday: 46.5, weekend: 42.5 },
-    { hour: '15:00', weekday: 54.0, weekend: 45.0 },
-    { hour: '16:00', weekday: 68.2, weekend: 50.0 },
-    { hour: '17:00', weekday: 85.0, weekend: 58.0 },
-    { hour: '18:00', weekday: 93.0, weekend: 61.2 },
-    { hour: '19:00', weekday: 88.4, weekend: 55.0 },
-    { hour: '20:00', weekday: 71.5, weekend: 42.0 },
-    { hour: '21:00', weekday: 50.0, weekend: 30.0 },
-    { hour: '22:00', weekday: 32.0, weekend: 18.5 },
+    { hour: '6 am', hourNum: 6, weekday: 26, weekend: 18 },
+    { hour: '7 am', hourNum: 7, weekday: 55, weekend: 30 },
+    { hour: '8 am', hourNum: 8, weekday: 82, weekend: 44 },
+    { hour: '9 am', hourNum: 9, weekday: 92, weekend: 52 },
+    { hour: '10 am', hourNum: 10, weekday: 78, weekend: 49 },
+    { hour: '11 am', hourNum: 11, weekday: 60, weekend: 44 },
+    { hour: '12 pm', hourNum: 12, weekday: 48, weekend: 40 },
+    { hour: '1 pm', hourNum: 13, weekday: 45, weekend: 38 },
+    { hour: '2 pm', hourNum: 14, weekday: 46, weekend: 41 },
+    { hour: '3 pm', hourNum: 15, weekday: 54, weekend: 45 },
+    { hour: '4 pm', hourNum: 16, weekday: 68, weekend: 48 },
+    { hour: '5 pm', hourNum: 17, weekday: 86, weekend: 54 },
+    { hour: '6 pm', hourNum: 18, weekday: 94, weekend: 58 },
+    { hour: '7 pm', hourNum: 19, weekday: 84, weekend: 50 },
+    { hour: '8 pm', hourNum: 20, weekday: 64, weekend: 36 },
+    { hour: '9 pm', hourNum: 21, weekday: 40, weekend: 22 },
   ];
 
-  // Top routes data
-  const baseRoutes = summary?.top_crowded_routes || [
-    { route_id: '717AUP', route_name: '717A Express Trunk', avg_rci: 82.5, avg_peak_rci: 94.2, peak_hour: '08:30 & 18:00', category: 'high' },
-    { route_id: '717ADOWN', route_name: '717A Inbound Trunk', avg_rci: 80.8, avg_peak_rci: 92.0, peak_hour: '09:00 & 18:30', category: 'high' },
-    { route_id: '729DOWN', route_name: '729 Kapashera–Old Delhi', avg_rci: 68.4, avg_peak_rci: 79.0, peak_hour: '09:00 & 18:30', category: 'moderate' },
-    { route_id: '729UP', route_name: '729 Old Delhi–Kapashera', avg_rci: 64.0, avg_peak_rci: 74.5, peak_hour: '08:00 & 19:00', category: 'moderate' },
-    { route_id: '511AUP', route_name: '511A Badarpur–Dhaula Kuan', avg_rci: 59.8, avg_peak_rci: 71.2, peak_hour: '09:30 & 18:00', category: 'moderate' },
-    { route_id: '101UP', route_name: '101 Shivaji Stadium–Sarai Kale Khan', avg_rci: 46.5, avg_peak_rci: 58.0, peak_hour: '09:00 & 17:30', category: 'low' },
+  // Most crowded routes table matching Screenshot 3
+  const peakRoutes = [
+    {
+      route: '73UP',
+      direction: 'Anand Vihar ISBT to Shivaji Stadium',
+      peakHour: '6 pm',
+      crowdLevel: 'high',
+      rci: 88,
+      dataAvailability: 'A lot of data',
+    },
+    {
+      route: '534',
+      direction: 'Mori Gate to Nehru Place',
+      peakHour: '6 pm',
+      crowdLevel: 'high',
+      rci: 84,
+      dataAvailability: 'A lot of data',
+    },
+    {
+      route: '764',
+      direction: 'Najafgarh to Connaught Place',
+      peakHour: '9 am',
+      crowdLevel: 'high',
+      rci: 78,
+      dataAvailability: 'Some data',
+    },
+    {
+      route: '429',
+      direction: 'Saket to Kashmere Gate',
+      peakHour: '8 am',
+      crowdLevel: 'moderate',
+      rci: 56,
+      dataAvailability: 'A lot of data',
+    },
+    {
+      route: '850DOWN',
+      direction: 'Shivaji Stadium to Anand Vihar ISBT',
+      peakHour: '9 am',
+      crowdLevel: 'moderate',
+      rci: 48,
+      dataAvailability: 'Some data',
+    },
   ];
 
-  const sortedRoutes = useMemo(() => {
-    return [...baseRoutes].sort((a, b) => {
-      const valA = a[sortField] || 0;
-      const valB = b[sortField] || 0;
-      return sortAsc ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+  const sortedPeakRoutes = useMemo(() => {
+    return [...peakRoutes].sort((a, b) => {
+      const vA = a[sortField] || 0;
+      const vB = b[sortField] || 0;
+      return sortAsc ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1);
     });
-  }, [baseRoutes, sortField, sortAsc]);
+  }, [peakRoutes, sortField, sortAsc]);
 
-  const toggleSort = (field) => {
-    if (sortField === field) {
-      setSortAsc(!sortAsc);
+  // Comparison dataset matching Screenshot 3
+  const routeComparisonData = [
+    { hour: '6 am', '73UP': 24, '534': 22, '764': 20 },
+    { hour: '7 am', '73UP': 54, '534': 50, '764': 46 },
+    { hour: '8 am', '73UP': 84, '534': 78, '764': 72 },
+    { hour: '9 am', '73UP': 92, '534': 88, '764': 78 },
+    { hour: '10 am', '73UP': 78, '534': 74, '764': 66 },
+    { hour: '11 am', '73UP': 58, '534': 54, '764': 52 },
+    { hour: '12 pm', '73UP': 48, '534': 44, '764': 44 },
+    { hour: '1 pm', '73UP': 44, '534': 42, '764': 42 },
+    { hour: '2 pm', '73UP': 46, '534': 44, '764': 44 },
+    { hour: '3 pm', '73UP': 54, '534': 52, '764': 48 },
+    { hour: '4 pm', '73UP': 68, '534': 66, '764': 56 },
+    { hour: '5 pm', '73UP': 86, '534': 82, '764': 64 },
+    { hour: '6 pm', '73UP': 95, '534': 92, '764': 70 },
+    { hour: '7 pm', '73UP': 86, '534': 80, '764': 60 },
+    { hour: '8 pm', '73UP': 66, '534': 60, '764': 48 },
+    { hour: '9 pm', '73UP': 42, '534': 36, '764': 32 },
+  ];
+
+  // 24h Route Profile data (Boardings vs Onboard Load)
+  const route24hData = [
+    { hour: '05:00', boardings: 140, onboard: 22 },
+    { hour: '06:00', boardings: 320, onboard: 48 },
+    { hour: '07:00', boardings: 780, onboard: 74 },
+    { hour: '08:00', boardings: 1250, onboard: 92 },
+    { hour: '09:00', boardings: 1420, onboard: 96 },
+    { hour: '10:00', boardings: 980, onboard: 82 },
+    { hour: '11:00', boardings: 610, onboard: 58 },
+    { hour: '12:00', boardings: 490, onboard: 46 },
+    { hour: '13:00', boardings: 430, onboard: 42 },
+    { hour: '14:00', boardings: 460, onboard: 44 },
+    { hour: '15:00', boardings: 620, onboard: 54 },
+    { hour: '16:00', boardings: 890, onboard: 68 },
+    { hour: '17:00', boardings: 1290, onboard: 88 },
+    { hour: '18:00', boardings: 1540, onboard: 95 },
+    { hour: '19:00', boardings: 1180, onboard: 84 },
+    { hour: '20:00', boardings: 790, onboard: 64 },
+    { hour: '21:00', boardings: 480, onboard: 44 },
+    { hour: '22:00', boardings: 210, onboard: 26 },
+  ];
+
+  const toggleRoute = (r) => {
+    if (selectedRoutes.includes(r)) {
+      if (selectedRoutes.length > 1) {
+        setSelectedRoutes(selectedRoutes.filter((item) => item !== r));
+      }
     } else {
-      setSortField(field);
-      setSortAsc(false);
+      setSelectedRoutes([...selectedRoutes, r]);
     }
   };
 
   return (
     <div className="py-4 space-y-6 max-w-6xl mx-auto">
-      {/* Title & Scope */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-navy">
-          {lang === 'hi' ? 'दिल्ली बस नेटवर्क विश्लेषण' : 'Delhi Transit Network Analytics'}
+      {/* Title & Scope matching Screenshot 3 */}
+      <div className="space-y-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+          Analytics
         </h1>
-        <p className="text-xs text-transit-textMuted mt-1">
-          {lang === 'hi'
-            ? 'अक्टूबर 2026 के 25.6 लाख आधिकारिक इलेक्ट्रॉनिक टिकटिंग रिकॉर्ड्स पर आधारित डेटा विश्लेषण।'
-            : 'System-wide crowding analysis derived from 2.56M official October 2026 ETM ticket records.'}
+        <p className="text-xs text-slate-500">
+          Crowd patterns across the routes in the ticket data. Based on past ticket data, not live conditions.
         </p>
+        <div className="pt-1">
+          <span className="inline-block text-[11px] text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded">
+            Data: organizer ETM and e-ticketing records · sample data range · model updated with the latest data
+          </span>
+        </div>
       </div>
 
-      {/* 4-Figure Single Summary Strip divided by hairlines */}
-      <div className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
-        <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-transit-borderSubtle">
-          <div className="p-3.5 sm:p-4 text-center sm:text-left">
-            <span className="text-[11px] font-semibold text-transit-textMuted uppercase tracking-wider block">
-              {lang === 'hi' ? 'रूट शामिल' : 'Routes covered'}
+      {/* Section A: 4 Metric Cards in a single white card with hairline vertical dividers */}
+      <div className="bg-white border border-slate-200 rounded-lg shadow-xs overflow-hidden">
+        <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+          <div className="p-4">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+              ROUTES WITH ENOUGH DATA
             </span>
-            <span className="text-xl sm:text-2xl font-bold text-navy tabular-nums mt-0.5 block">
-              {summary?.total_routes ? summary.total_routes.toLocaleString() : '2,574'}
+            <span className="text-2xl font-bold text-slate-900 block mt-1">
+              312
             </span>
-          </div>
-
-          <div className="p-3.5 sm:p-4 text-center sm:text-left">
-            <span className="text-[11px] font-semibold text-transit-textMuted uppercase tracking-wider block">
-              {lang === 'hi' ? 'टिकट रिकॉर्ड' : 'Tickets processed'}
-            </span>
-            <span className="text-xl sm:text-2xl font-bold text-navy tabular-nums mt-0.5 block">
-              2.56M
+            <span className="text-[11px] text-slate-500 block mt-0.5">
+              of the routes in the timetable
             </span>
           </div>
 
-          <div className="p-3.5 sm:p-4 text-center sm:text-left">
-            <span className="text-[11px] font-semibold text-transit-textMuted uppercase tracking-wider block">
-              {lang === 'hi' ? 'दिनांक सीमा' : 'Date range'}
+          <div className="p-4">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+              TICKET RECORDS PROCESSED
             </span>
-            <span className="text-xl sm:text-2xl font-bold text-navy tabular-nums mt-0.5 block">
-              01–31 Oct 2026
+            <span className="text-2xl font-bold text-slate-900 block mt-1">
+              2.4 million
+            </span>
+            <span className="text-[11px] text-slate-500 block mt-0.5">
+              after cleaning
             </span>
           </div>
 
-          <div className="p-3.5 sm:p-4 text-center sm:text-left">
-            <span className="text-[11px] font-semibold text-transit-textMuted uppercase tracking-wider block">
-              {lang === 'hi' ? 'मॉडल अपडेट' : 'Last model update'}
+          <div className="p-4">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+              DATE RANGE
             </span>
-            <span className="text-xl sm:text-2xl font-bold text-teal tabular-nums mt-0.5 block">
-              Oct 2026
+            <span className="text-2xl font-bold text-slate-900 block mt-1">
+              5 weeks
+            </span>
+            <span className="text-[11px] text-slate-500 block mt-0.5">
+              weekdays and weekends
+            </span>
+          </div>
+
+          <div className="p-4">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+              MODEL
+            </span>
+            <span className="text-2xl font-bold text-slate-900 block mt-1">
+              Random Forest
+            </span>
+            <span className="text-[11px] text-slate-500 block mt-0.5">
+              compared with a simple average
             </span>
           </div>
         </div>
       </div>
 
-      {/* Question 1: When is the network busiest? */}
-      <section className="bg-white border border-border rounded-2xl shadow-sm p-4 sm:p-5 space-y-3">
-        <div>
-          <h2 className="text-sm sm:text-base font-bold text-navy">
-            {lang === 'hi' ? 'नेटवर्क सबसे अधिक व्यस्त कब होता है?' : 'When is the network busiest?'}
-          </h2>
-          <p className="text-xs text-transit-textMuted mt-0.5">
-            {lang === 'hi'
-              ? 'कार्यदिवसों पर दो स्पष्ट शिखर होते हैं: सुबह 9:00 बजे और शाम 6:00 बजे। सप्ताहांत में मांग लगभग 35% कम हो जाती है।'
-              : 'Weekdays experience twin peak windows at 9:00 am and 6:00 pm. Weekend passenger load is approximately 35% lower.'}
+      {/* Row of Two Cards: Section B & Section C matching Screenshot 3 */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
+        {/* Left Card: When is the network busiest? (7 cols) */}
+        <div className="md:col-span-7 bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-3 flex flex-col justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">
+              When is the network busiest?
+            </h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Typical crowd level across all routes, by hour
+            </p>
+
+            {/* Line Chart with 3 colored background bands */}
+            <div className="h-52 w-full pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={diurnalData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <ReferenceArea y1={70} y2={100} fill="#FEE2E2" fillOpacity={0.65} />
+                  <ReferenceArea y1={35} y2={70} fill="#FEF3C7" fillOpacity={0.65} />
+                  <ReferenceArea y1={0} y2={35} fill="#DCFCE7" fillOpacity={0.65} />
+
+                  <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#E2E8F0" />
+                  <XAxis
+                    dataKey="hour"
+                    ticks={['6 am', '9 am', '12 pm', '3 pm', '6 pm', '9 pm']}
+                    tick={{ fontSize: 9.5, fill: '#64748B' }}
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    ticks={[18, 52, 85]}
+                    tickFormatter={(v) => (v >= 70 ? 'High' : v >= 35 ? 'Moderate' : 'Low')}
+                    tick={{ fontSize: 9, fill: '#64748B' }}
+                  />
+
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const d = payload[0].payload;
+                        return (
+                          <div className="bg-white border border-slate-200 p-2 rounded shadow-sm text-xs space-y-0.5">
+                            <p className="font-bold text-slate-900">{d.hour}</p>
+                            <p className="text-blue-700 font-semibold">Weekday: {d.weekday}/100</p>
+                            <p className="text-slate-500">Weekend: {d.weekend}/100</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+
+                  <Area
+                    name="Weekday"
+                    type="monotone"
+                    dataKey="weekday"
+                    stroke="#1D4ED8"
+                    strokeWidth={2}
+                    fill="none"
+                    dot={false}
+                  />
+                  <Line
+                    name="Weekend"
+                    type="monotone"
+                    dataKey="weekend"
+                    stroke="#94A3B8"
+                    strokeWidth={1.5}
+                    strokeDasharray="3 3"
+                    dot={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-4 text-[11px] text-slate-500 pt-1">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3.5 h-0.5 bg-blue-600 inline-block" />
+                <span>Weekday</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3.5 h-0.5 border-t border-dashed border-slate-400 inline-block" />
+                <span>Weekend</span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-slate-600 pt-2 border-t border-slate-100">
+            Weekday crowding peaks around 9 am and 6 pm. Weekends stay flatter, with a small bump around midday.
           </p>
         </div>
 
-        {/* Diurnal Chart (Navy / Teal / Grey) */}
-        <div className="h-64 w-full pt-2">
+        {/* Right Card: How are crowd levels spread? (5 cols) */}
+        <div className="md:col-span-5 bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-4 flex flex-col justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">
+              How are crowd levels spread?
+            </h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Share of route and hour slots at each level
+            </p>
+
+            {/* Horizontal Segmented Bar: 52% Green, 33% Yellow, 15% Red */}
+            <div className="h-4 w-full flex rounded-xs overflow-hidden mt-6 mb-4">
+              <div style={{ width: '52%' }} className="bg-emerald-600" title="52% Not crowded" />
+              <div style={{ width: '33%' }} className="bg-amber-500" title="33% Fairly crowded" />
+              <div style={{ width: '15%' }} className="bg-red-600" title="15% Very crowded" />
+            </div>
+
+            {/* Legend list with person icons matching Screenshot 3 */}
+            <div className="space-y-2 text-xs pt-2">
+              <div className="flex items-center justify-between">
+                <CrowdIndicator category="low" size="sm" />
+                <span className="font-bold text-slate-900 tabular-nums">52%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <CrowdIndicator category="moderate" size="sm" />
+                <span className="font-bold text-slate-900 tabular-nums">33%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <CrowdIndicator category="high" size="sm" />
+                <span className="font-bold text-slate-900 tabular-nums">15%</span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-[10px] text-slate-400 pt-2 border-t border-slate-100">
+            Levels are relative to other route and hour slots in the data. They are not seat counts.
+          </p>
+        </div>
+      </div>
+
+      {/* Section D: Which routes are most crowded at peak? matching Screenshot 3 */}
+      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">
+              Which routes are most crowded at peak?
+            </h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Weekday evening peak · sortable
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShow24hModal(true)}
+            className="text-xs font-semibold text-blue-700 hover:underline"
+          >
+            View 24h Route Profile →
+          </button>
+        </div>
+
+        {/* Clean Table with hairline dividers */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
+                <th className="py-2 px-2.5">ROUTE</th>
+                <th className="py-2 px-2.5">DIRECTION</th>
+                <th className="py-2 px-2.5">PEAK HOUR</th>
+                <th className="py-2 px-2.5">CROWD LEVEL</th>
+                <th
+                  onClick={() => {
+                    setSortField('rci');
+                    setSortAsc(!sortAsc);
+                  }}
+                  className="py-2 px-2.5 cursor-pointer hover:text-slate-800"
+                >
+                  RELATIVE CROWDING {sortField === 'rci' ? (sortAsc ? '↑' : '↓') : ''}
+                </th>
+                <th className="py-2 px-2.5">DATA</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {sortedPeakRoutes.map((r) => (
+                <tr
+                  key={r.route}
+                  onClick={() => {
+                    setActiveProfileRoute(r.route);
+                    setShow24hModal(true);
+                  }}
+                  className="hover:bg-slate-50/70 cursor-pointer transition-colors"
+                >
+                  <td className="py-2.5 px-2.5">
+                    <span className="bg-slate-900 text-white font-mono font-bold text-xs px-2 py-0.5 rounded">
+                      {r.route}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-2.5 font-medium text-slate-800">
+                    {r.direction}
+                  </td>
+                  <td className="py-2.5 px-2.5 text-slate-600">
+                    {r.peakHour}
+                  </td>
+                  <td className="py-2.5 px-2.5">
+                    <CrowdIndicator category={r.crowdLevel} size="sm" />
+                  </td>
+                  <td className="py-2.5 px-2.5">
+                    <div className="w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        style={{ width: `${r.rci}%` }}
+                        className={`h-full ${
+                          r.crowdLevel === 'high' ? 'bg-red-600' : 'bg-amber-500'
+                        }`}
+                      />
+                    </div>
+                  </td>
+                  <td className="py-2.5 px-2.5 text-slate-500 text-[11px]">
+                    {r.dataAvailability}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Section E: How do selected routes compare? matching Screenshot 3 */}
+      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">
+              How do selected routes compare?
+            </h2>
+          </div>
+
+          {/* Route Buttons [73UP] [534] [764] [+ Add route] */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {['73UP', '534', '764', '850DOWN'].map((r) => {
+              const isSel = selectedRoutes.includes(r);
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => toggleRoute(r)}
+                  className={`px-2.5 py-1 rounded text-xs font-mono font-bold transition-all ${
+                    isSel
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {r}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => toggleRoute('429')}
+              className="px-2.5 py-1 rounded text-xs text-slate-500 border border-dashed border-slate-300 hover:border-slate-400"
+            >
+              + Add route
+            </button>
+          </div>
+        </div>
+
+        {/* Multi-Line Comparison Chart */}
+        <div className="h-56 w-full pt-1">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={diurnalData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#DDE2E3" />
-              <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#5F6B73' }} interval={2} />
-              <YAxis
-                tick={{ fontSize: 10, fill: '#5F6B73' }}
-                label={{
-                  value: lang === 'hi' ? 'भीड़ सूचकांक' : 'Crowd Index (0-100)',
-                  angle: -90,
-                  position: 'insideLeft',
-                  offset: 25,
-                  style: { fontSize: 10, fill: '#5F6B73' },
-                }}
+            <LineChart data={routeComparisonData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+              <ReferenceArea y1={70} y2={100} fill="#FEE2E2" fillOpacity={0.65} />
+              <ReferenceArea y1={35} y2={70} fill="#FEF3C7" fillOpacity={0.65} />
+              <ReferenceArea y1={0} y2={35} fill="#DCFCE7" fillOpacity={0.65} />
+
+              <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#E2E8F0" />
+              <XAxis
+                dataKey="hour"
+                ticks={['6 am', '9 am', '12 pm', '3 pm', '6 pm', '9 pm']}
+                tick={{ fontSize: 9.5, fill: '#64748B' }}
               />
+              <YAxis
+                domain={[0, 100]}
+                ticks={[18, 52, 85]}
+                tickFormatter={(v) => (v >= 70 ? 'High' : v >= 35 ? 'Moderate' : 'Low')}
+                tick={{ fontSize: 9, fill: '#64748B' }}
+              />
+
               <Tooltip
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
-                    const d = payload[0].payload;
+                    const h = payload[0].payload.hour;
                     return (
-                      <div className="bg-white border border-transit-border p-2.5 rounded-[4px] shadow-sm text-xs space-y-1">
-                        <p className="font-bold text-navy">{d.hour}</p>
-                        <p className="text-navy font-semibold">
-                          {lang === 'hi' ? 'कार्यदिवस:' : 'Weekday load:'} {d.weekday} / 100
-                        </p>
-                        <p className="text-transit-textMuted font-medium">
-                          {lang === 'hi' ? 'सप्ताहांत:' : 'Weekend load:'} {d.weekend} / 100
-                        </p>
+                      <div className="bg-white border border-slate-200 p-2 rounded shadow-sm text-xs space-y-1">
+                        <p className="font-bold text-slate-900">{h}</p>
+                        {payload.map((entry) => (
+                          <div key={entry.name} className="flex justify-between gap-3 text-[11px]">
+                            <span style={{ color: entry.stroke }} className="font-semibold">{entry.name}:</span>
+                            <span className="font-bold">{entry.value}/100</span>
+                          </div>
+                        ))}
                       </div>
                     );
                   }
                   return null;
                 }}
               />
-              <Legend
-                verticalAlign="top"
-                align="right"
-                wrapperStyle={{ fontSize: '11px', paddingBottom: '8px' }}
-              />
-              <Area
-                name={lang === 'hi' ? 'कार्यदिवस (Weekday)' : 'Weekday'}
-                type="monotone"
-                dataKey="weekday"
-                stroke="#142B3B"
-                strokeWidth={2}
-                fill="#142B3B"
-                fillOpacity={0.08}
-              />
-              <Area
-                name={lang === 'hi' ? 'सप्ताहांत (Weekend)' : 'Weekend'}
-                type="monotone"
-                dataKey="weekend"
-                stroke="#147D78"
-                strokeWidth={2}
-                fill="#147D78"
-                fillOpacity={0.05}
-              />
-            </AreaChart>
+
+              {selectedRoutes.includes('73UP') && (
+                <Line
+                  type="monotone"
+                  dataKey="73UP"
+                  name="73UP"
+                  stroke="#1D4ED8"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              )}
+              {selectedRoutes.includes('534') && (
+                <Line
+                  type="monotone"
+                  dataKey="534"
+                  name="534"
+                  stroke="#0F172A"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              )}
+              {selectedRoutes.includes('764') && (
+                <Line
+                  type="monotone"
+                  dataKey="764"
+                  name="764"
+                  stroke="#64748B"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              )}
+              {selectedRoutes.includes('850DOWN') && (
+                <Line
+                  type="monotone"
+                  dataKey="850DOWN"
+                  name="850DOWN"
+                  stroke="#0D9488"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              )}
+            </LineChart>
           </ResponsiveContainer>
         </div>
-      </section>
 
-      {/* Question 2: Which routes are most crowded at peak? */}
-      <section className="bg-white border border-border rounded-2xl shadow-sm p-4 sm:p-5 space-y-3">
-        <div>
-          <h2 className="text-sm sm:text-base font-bold text-navy">
-            {lang === 'hi' ? 'पीक समय में कौन से रूट सबसे अधिक भरे होते हैं?' : 'Which routes are most crowded at peak?'}
-          </h2>
-          <p className="text-xs text-transit-textMuted mt-0.5">
-            {lang === 'hi'
-              ? 'ट्रंक रूट जैसे 717A और 729 पीक समय में 90% से अधिक क्षमता तक पहुंचते हैं।'
-              : 'Trunk radial corridors (such as 717A and 729) reach over 90% load during morning and evening rush hours.'}
-          </p>
+        {/* Legend matching Screenshot 3 */}
+        <div className="flex items-center gap-4 text-[11px] text-slate-500 pt-1">
+          {selectedRoutes.map((r) => (
+            <div key={r} className="flex items-center gap-1.5">
+              <span
+                className="w-3.5 h-0.5 inline-block"
+                style={{
+                  backgroundColor:
+                    r === '73UP' ? '#1D4ED8' : r === '534' ? '#0F172A' : '#64748B',
+                }}
+              />
+              <span>{r}</span>
+            </div>
+          ))}
         </div>
 
-        {/* Sortable Table with Inline Bars */}
-        <div className="overflow-x-auto border border-transit-border rounded-[4px]">
+        <p className="text-[11px] text-slate-600 pt-2 border-t border-slate-100">
+          534 and 73UP reach the highest crowd levels in the evening. 764 stays mostly in the moderate band.
+        </p>
+      </div>
+
+      {/* Section G: Model vs Simple Average (from prompt requirements) */}
+      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-3">
+        <h2 className="text-sm font-bold text-slate-900">
+          Model vs Simple Average (Held-Out Evaluation)
+        </h2>
+        <p className="text-[11px] text-slate-500">
+          Comparison evaluated on unseen test data from the final week of October 2026.
+        </p>
+
+        <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-transit-bg border-b border-transit-border text-navy">
-                <th className="py-2.5 px-3 font-semibold">{lang === 'hi' ? 'रूट' : 'Route'}</th>
-                <th className="py-2.5 px-3 font-semibold">{lang === 'hi' ? 'कॉरिडोर नाम' : 'Corridor Name'}</th>
-                <th
-                  onClick={() => toggleSort('avg_peak_rci')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-teal select-none"
-                >
-                  {lang === 'hi' ? 'पीक भीड़ स्तर' : 'Peak Crowd Level'} {sortField === 'avg_peak_rci' ? (sortAsc ? '↑' : '↓') : ''}
-                </th>
-                <th className="py-2.5 px-3 font-semibold">{lang === 'hi' ? 'पीक घंटे' : 'Peak Hours'}</th>
-                <th className="py-2.5 px-3 font-semibold">{lang === 'hi' ? 'श्रेणी' : 'Category'}</th>
+              <tr className="border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
+                <th className="py-2 px-2.5">METHOD</th>
+                <th className="py-2 px-2.5">MAE (MEAN ERROR)</th>
+                <th className="py-2 px-2.5">RMSE</th>
+                <th className="py-2 px-2.5">RANKING MATCH</th>
+                <th className="py-2 px-2.5">LEVEL MATCH</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-transit-borderSubtle">
-              {sortedRoutes.map((r) => {
-                const barWidth = Math.min(100, Math.round(r.avg_peak_rci));
-                const normCat = normalizeCrowdCategory(r.category);
-                const barColor =
-                  normCat === 'high'
-                    ? 'bg-crowd-high'
-                    : normCat === 'moderate'
-                    ? 'bg-crowd-mod'
-                    : normCat === 'low'
-                    ? 'bg-crowd-low'
-                    : 'bg-crowd-unknown';
-
-                return (
-                  <tr key={r.route_id} className="hover:bg-transit-bg/30 transition-colors">
-                    <td className="py-2.5 px-3">
-                      <RouteBadge routeNumber={r.route_id} size="sm" />
-                    </td>
-                    <td className="py-2.5 px-3 font-medium text-navy">{r.route_name}</td>
-                    <td className="py-2.5 px-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 h-2 bg-transit-bg rounded-full overflow-hidden">
-                          <div
-                            style={{ width: `${barWidth}%` }}
-                            className={`h-full ${barColor}`}
-                          />
-                        </div>
-                        <span className="tabular-nums font-semibold text-navy">{r.avg_peak_rci}</span>
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3 text-transit-textMuted tabular-nums">{r.peak_hour}</td>
-                    <td className="py-2.5 px-3">
-                      <CrowdStrip category={r.category} size="sm" showLabel={true} />
-                    </td>
-                  </tr>
-                );
-              })}
+            <tbody className="divide-y divide-slate-100">
+              <tr>
+                <td className="py-2.5 px-2.5 font-bold text-slate-800">Simple average</td>
+                <td className="py-2.5 px-2.5 tabular-nums">0.31</td>
+                <td className="py-2.5 px-2.5 tabular-nums">0.42</td>
+                <td className="py-2.5 px-2.5 tabular-nums">0.62</td>
+                <td className="py-2.5 px-2.5 tabular-nums font-semibold">56%</td>
+              </tr>
+              <tr>
+                <td className="py-2.5 px-2.5 font-bold text-blue-900">Random Forest (ML)</td>
+                <td className="py-2.5 px-2.5 tabular-nums font-semibold text-emerald-700">0.24</td>
+                <td className="py-2.5 px-2.5 tabular-nums font-semibold text-emerald-700">0.33</td>
+                <td className="py-2.5 px-2.5 tabular-nums font-semibold text-emerald-700">0.74</td>
+                <td className="py-2.5 px-2.5 tabular-nums font-bold text-emerald-700">67%</td>
+              </tr>
             </tbody>
           </table>
         </div>
-      </section>
+      </div>
 
-      {/* Question 3: How are crowd levels distributed? */}
-      <section className="bg-white border border-border rounded-2xl shadow-sm p-4 sm:p-5 space-y-3">
-        <div>
-          <h2 className="text-sm sm:text-base font-bold text-navy">
-            {lang === 'hi' ? 'नेटवर्क में भीड़ का वितरण कैसा है?' : 'How are crowd levels distributed?'}
-          </h2>
-          <p className="text-xs text-transit-textMuted mt-0.5">
-            {lang === 'hi'
-              ? 'आधे से अधिक बस घंटों (54%) में सीटें उपलब्ध रहती हैं। अत्यधिक भीड़ केवल कुछ विशिष्ट पीक घंटों तक सीमित है।'
-              : 'Over 54% of operating bus hours offer available seats. Severe crowding is concentrated in specific morning and evening commute windows.'}
-          </p>
-        </div>
+      {/* Section F: 24h Route Profile Modal */}
+      {show24hModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white border border-slate-200 rounded-xl p-5 max-w-2xl w-full shadow-xl space-y-4 animate-scale-up">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  24-Hour Route Profile: Route {activeProfileRoute}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Hourly historical passenger boardings (ETM) vs estimated onboard load
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShow24hModal(false)}
+                className="text-slate-400 hover:text-slate-700 text-lg font-bold px-2 py-1"
+              >
+                ✕
+              </button>
+            </div>
 
-        {/* Horizontal Stacked Bar */}
-        <div className="space-y-2 pt-1">
-          <div className="h-4 w-full flex rounded-[4px] overflow-hidden bg-transit-bg">
-            <div style={{ width: '54%' }} className="bg-crowd-low" title="54% Not crowded" />
-            <div style={{ width: '32%' }} className="bg-crowd-mod" title="32% Fairly crowded" />
-            <div style={{ width: '14%' }} className="bg-crowd-high" title="14% Very crowded" />
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={route24hData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#E2E8F0" />
+                  <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#64748B' }} />
+                  <YAxis tick={{ fontSize: 10, fill: '#64748B' }} />
+                  <Tooltip />
+                  <Legend />
+                  <Area
+                    name="Boardings (Tickets/hr)"
+                    type="monotone"
+                    dataKey="boardings"
+                    stroke="#0284C7"
+                    fill="#E0F2FE"
+                  />
+                  <Line
+                    name="Estimated Onboard (RCI)"
+                    type="monotone"
+                    dataKey="onboard"
+                    stroke="#15803D"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="bg-slate-50 p-3 rounded-lg text-xs text-slate-600 leading-relaxed">
+              <strong>Distinction Note: </strong>
+              Passenger boardings represent raw conductor tickets issued per hour at stops along {activeProfileRoute}. Onboard load represents the alighting-reconstructed passenger accumulation traveling on the bus at any given point.
+            </div>
+
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => setShow24hModal(false)}
+                className="px-4 py-1.5 rounded-md bg-slate-900 text-white text-xs font-semibold"
+              >
+                Close
+              </button>
+            </div>
           </div>
-
-          <div className="flex flex-wrap items-center justify-between text-xs text-transit-textMuted pt-1">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-[2px] bg-crowd-low" />
-              <span className="font-semibold text-navy">54%</span>
-              <span>{lang === 'hi' ? 'कम भीड़ (सीट उपलब्ध)' : 'Not crowded (seats available)'}</span>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-[2px] bg-crowd-mod" />
-              <span className="font-semibold text-navy">32%</span>
-              <span>{lang === 'hi' ? 'मध्यम भीड़ (खड़े होने की जगह)' : 'Fairly crowded (standing room)'}</span>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-[2px] bg-crowd-high" />
-              <span className="font-semibold text-navy">14%</span>
-              <span>{lang === 'hi' ? 'ज़्यादा भीड़ (खचाखच)' : 'Very crowded (dense peak)'}</span>
-            </div>
-          </div>
         </div>
-      </section>
+      )}
     </div>
   );
 }

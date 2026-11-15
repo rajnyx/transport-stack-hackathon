@@ -15,16 +15,21 @@ export default function CompareTable({
 
   const topOptions = options.slice(0, 3);
 
+  const getOptTotalTime = (opt) =>
+    opt?.timing?.total_duration_min ?? opt?.total_time_min ?? opt?.total_duration_minutes ?? 999;
+  const getOptRci = (opt) =>
+    opt?.crowding?.journey_rci ?? opt?.rci ?? opt?.avg_rci ?? 50;
+
   // Identify fastest and least crowded among top options
   const fastestIndex = topOptions.reduce(
     (minIdx, cur, idx, arr) =>
-      (cur.total_duration_minutes || 999) < (arr[minIdx].total_duration_minutes || 999) ? idx : minIdx,
+      getOptTotalTime(cur) < getOptTotalTime(arr[minIdx]) ? idx : minIdx,
     0
   );
 
   const leastCrowdedIndex = topOptions.reduce(
     (minIdx, cur, idx, arr) =>
-      (cur.avg_rci || 50) < (arr[minIdx].avg_rci || 50) ? idx : minIdx,
+      getOptRci(cur) < getOptRci(arr[minIdx]) ? idx : minIdx,
     0
   );
 
@@ -36,29 +41,33 @@ export default function CompareTable({
   };
 
   const getBusiestZone = (opt) => {
-    if (opt.zone_forecasts && opt.zone_forecasts.length > 0) {
-      const maxZone = [...opt.zone_forecasts].sort((a, b) => (b.rci || 0) - (a.rci || 0))[0];
-      return maxZone?.zone_name || (lang === 'hi' ? 'मध्य स्टॉप' : 'Midway stretch');
+    const zones = opt?.crowding?.zone_breakdown || opt?.zone_forecasts;
+    if (zones && zones.length > 0) {
+      const maxZone = [...zones].sort((a, b) => (b.rci || 0) - (a.rci || 0))[0];
+      return maxZone?.zone_name || `Zone ${maxZone?.zone_id ?? 'Central'}`;
     }
-    return lang === 'hi' ? 'सामान्य' : 'Typical stretch';
+    return lang === 'hi' ? 'सामान्य कॉरिडोर' : 'Typical stretch';
   };
 
   const metrics = [
     {
       key: 'total_time',
       label: lang === 'hi' ? 'कुल समय' : 'Total time',
-      render: (opt) => (
-        <span className="font-bold text-navy text-sm tabular-nums">
-          {opt.total_duration_minutes || 45} {t('results.min')}
-        </span>
-      ),
+      render: (opt) => {
+        const val = getOptTotalTime(opt);
+        return (
+          <span className="font-bold text-navy text-sm tabular-nums">
+            {val !== 999 ? Math.round(val) : '—'} {t('results.min')}
+          </span>
+        );
+      },
     },
     {
       key: 'walk',
       label: lang === 'hi' ? 'पैदल' : 'Walk',
       render: (opt) => (
         <span className="tabular-nums text-tx-muted">
-          {opt.walk_time_minutes || 0} {t('results.min')}
+          {Math.round(opt.timing?.walk_time_min ?? opt.walk_time_minutes ?? 0)} {t('results.min')}
         </span>
       ),
     },
@@ -67,7 +76,7 @@ export default function CompareTable({
       label: lang === 'hi' ? 'इंतज़ार' : 'Wait',
       render: (opt) => (
         <span className="tabular-nums text-tx-muted">
-          {opt.wait_time_minutes || 5} {t('results.min')}
+          {Math.round(opt.timing?.wait_time_min ?? opt.wait_time_min ?? opt.wait_time_minutes ?? 0)} {t('results.min')}
         </span>
       ),
     },
@@ -76,7 +85,7 @@ export default function CompareTable({
       label: lang === 'hi' ? 'सवारी' : 'Ride',
       render: (opt) => (
         <span className="tabular-nums font-medium text-navy">
-          {opt.ride_time_minutes || opt.total_duration_minutes || 40} {t('results.min')}
+          {Math.round(opt.timing?.travel_time_min ?? opt.timing?.in_vehicle_min ?? opt.travel_time_min ?? opt.ride_time_minutes ?? getOptTotalTime(opt))} {t('results.min')}
         </span>
       ),
     },
@@ -84,7 +93,11 @@ export default function CompareTable({
       key: 'crowd_origin',
       label: lang === 'hi' ? 'आपके स्टॉप पर भीड़' : 'Crowd at your stop',
       render: (opt) => (
-        <CrowdIndicator category={opt.crowd_category || 'low'} size="sm" />
+        <CrowdIndicator
+          category={opt.crowding?.category || opt.crowding_category || opt.crowd_category || 'unknown'}
+          occupancyPercent={opt.occupancy_percent || (opt.rci ? Math.round(opt.rci) : null)}
+          size="sm"
+        />
       ),
     },
     {
@@ -161,7 +174,7 @@ export default function CompareTable({
                       )}
                       <RouteBadge routeNumber={routeNum} size="sm" />
                       <span className="text-[11px] block text-tx-muted font-medium">
-                        Option {idx + 1}
+                        {lang === 'hi' ? `विकल्प ${idx + 1}` : `Option ${idx + 1}`}
                       </span>
                     </div>
                   </th>

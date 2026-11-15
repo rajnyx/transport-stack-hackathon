@@ -1,58 +1,88 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 
 /**
- * CrowdWise App Mark & Wordmark
- * Original, self-made SVG identity representing public bus transit with density intelligence.
+ * Delhi Bus & CrowdWise Logo Component
+ * Faithfully matches Screenshot 1 on the landing page and Screenshots 2, 3, 4 on inner pages.
  */
-export function AppMark({ size = 28, className = '' }) {
+export function DelhiBusFrontIcon({ size = 32, className = '' }) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 32 32"
+      viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={`shrink-0 ${className}`}
       aria-hidden="true"
     >
-      {/* Structural Rounded Navy Badge */}
-      <rect width="32" height="32" rx="7" fill="#142B3B" />
-
-      {/* Stylized Bus Profile */}
-      <rect x="7" y="6" width="18" height="18" rx="3.5" fill="#FFFFFF" />
-
+      {/* Green rounded rectangle background */}
+      <rect width="36" height="36" rx="8" fill="#015038" />
+      {/* Bus Body */}
+      <rect x="7" y="6" width="22" height="21" rx="4" fill="#FFFFFF" />
       {/* Windshield */}
-      <rect x="9.5" y="8.5" width="13" height="6.5" rx="1.5" fill="#142B3B" />
-
+      <rect x="9" y="8" width="18" height="8" rx="2" fill="#015038" />
       {/* Headlights */}
-      <circle cx="10.5" cy="18.5" r="1.5" fill="#00828A" />
-      <circle cx="21.5" cy="18.5" r="1.5" fill="#00828A" />
-
-      {/* Three Horizontal Density Indicator Notch Bars */}
-      <rect x="13.5" y="17.5" width="5" height="1.5" rx="0.75" fill="#142B3B" />
-      <rect x="13.5" y="20" width="5" height="1" rx="0.5" fill="#142B3B" opacity="0.6" />
-
-      {/* Wheels */}
-      <rect x="9" y="23.5" width="3.5" height="2" rx="1" fill="#142B3B" />
-      <rect x="19.5" y="23.5" width="3.5" height="2" rx="1" fill="#142B3B" />
+      <circle cx="11.5" cy="20.5" r="1.5" fill="#FBBF24" />
+      <circle cx="24.5" cy="20.5" r="1.5" fill="#FBBF24" />
+      {/* Center Grill / License plate */}
+      <rect x="15" y="19.5" width="6" height="2" rx="0.5" fill="#015038" />
+      {/* Front Wheels */}
+      <rect x="8.5" y="27" width="4" height="3" rx="1" fill="#0F172A" />
+      <rect x="23.5" y="27" width="4" height="3" rx="1" fill="#0F172A" />
+      {/* Side mirrors */}
+      <rect x="5.5" y="12" width="1.5" height="3.5" rx="0.75" fill="#FFFFFF" />
+      <rect x="29" y="12" width="1.5" height="3.5" rx="0.75" fill="#FFFFFF" />
     </svg>
   );
 }
 
-export default function AppLogo({ markSize = 28, showTag = true, className = '' }) {
+export const AppMark = DelhiBusFrontIcon;
+
+export function CrowdWiseBarIcon({ size = 20, className = '' }) {
   return (
-    <div className={`flex items-center gap-2 select-none group ${className}`}>
-      <AppMark size={markSize} />
-      <div className="flex items-center gap-1.5">
-        <span className="font-extrabold text-xl tracking-tight text-navy leading-none">
-          CrowdWise
-        </span>
-        {showTag && (
-          <span className="text-[10px] font-bold px-1.5 py-0.5 bg-navy text-white rounded-[3px] tracking-wider uppercase leading-none">
-            Delhi
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`shrink-0 ${className}`}
+      aria-hidden="true"
+    >
+      <rect x="3" y="12" width="4" height="9" rx="1" fill="#0F172A" />
+      <rect x="10" y="6" width="4" height="15" rx="1" fill="#0F172A" />
+      <rect x="17" y="3" width="4" height="18" rx="1" fill="#00828A" />
+    </svg>
+  );
+}
+
+export default function AppLogo({ isLanding = false, className = '' }) {
+  const location = useLocation();
+  const onLanding = isLanding || location.pathname === '/';
+
+  if (onLanding) {
+    return (
+      <div className={`flex items-center gap-2.5 select-none ${className}`}>
+        <DelhiBusFrontIcon size={34} />
+        <div className="flex flex-col">
+          <span className="font-extrabold text-[17px] tracking-tight text-slate-900 leading-none">
+            Delhi Bus
           </span>
-        )}
+          <span className="text-[10px] text-slate-500 font-medium tracking-tight mt-0.5 leading-none">
+            Smarter. Comfier. Together.
+          </span>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className={`flex items-center gap-2 select-none ${className}`}>
+      <CrowdWiseBarIcon size={20} />
+      <span className="font-bold text-[17px] tracking-tight text-slate-900 leading-none">
+        CrowdWise
+      </span>
     </div>
   );
 }

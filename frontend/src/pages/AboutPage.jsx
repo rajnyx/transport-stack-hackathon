@@ -1,242 +1,261 @@
-import React, { useState, useEffect } from 'react';
-import { ExternalLink, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { getDataQualityReport, getModelMetrics } from '../api';
+import React from 'react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import CrowdIndicator from '../components/primitives/CrowdIndicator';
 import { useTranslation } from '../i18n/LanguageContext';
 
 export default function AboutPage() {
   const { lang } = useTranslation();
-  const [qualityData, setQualityData] = useState(null);
-  const [modelMetrics, setModelMetrics] = useState(null);
-
-  useEffect(() => {
-    document.title = lang === 'hi' ? 'डेटा और कार्यप्रणाली | CrowdWise' : 'Data & Method | CrowdWise Delhi';
-  }, [lang]);
-
-  useEffect(() => {
-    getDataQualityReport()
-      .then((res) => setQualityData(res?.data))
-      .catch(() => {});
-
-    getModelMetrics()
-      .then((res) => setModelMetrics(res?.data))
-      .catch(() => {});
-  }, []);
 
   return (
-    <div className="py-6 max-w-[720px] mx-auto space-y-8 text-transit-text">
-      {/* Title & Introduction */}
-      <div className="space-y-2 border-b border-transit-border pb-4">
-        <h1 className="text-2xl font-bold text-navy tracking-tight">
-          {lang === 'hi' ? 'डेटा और कार्यप्रणाली' : 'Data & Method'}
+    <div className="py-6 max-w-4xl mx-auto space-y-8 text-slate-800">
+      {/* Title & Introduction matching Screenshot 4 */}
+      <div className="space-y-1.5 border-b border-slate-200 pb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+          Data and method
         </h1>
-        <p className="text-sm text-transit-textMuted leading-relaxed">
-          {lang === 'hi'
-            ? 'CrowdWise दिल्ली बस सेवा के 25.6 लाख आधिकारिक टिकटिंग रिकॉर्ड्स और समय सारणी के आधार पर बस भीड़ का सटीक और पारदर्शी अनुमान प्रस्तुत करता है।'
-            : 'How CrowdWise estimates bus crowding in Delhi using 2.56 million official conductor ticketing records and public GTFS timetables.'}
+        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl">
+          CrowdWise shows how crowded a bus usually is at the time you travel. This page explains where the numbers come from and what they cannot tell you.
         </p>
       </div>
 
-      {/* SVG Data-Flow Diagram */}
+      {/* Section 1: What the estimates are based on */}
       <section className="space-y-3">
-        <h2 className="text-base font-bold text-navy">
-          {lang === 'hi' ? 'डेटा प्रवाह संरचना' : 'Data Flow Architecture'}
+        <h2 className="text-sm font-bold text-slate-900">
+          What the estimates are based on
         </h2>
-        <div className="border border-border rounded-2xl shadow-sm bg-white p-5">
-          <svg
-            viewBox="0 0 680 140"
-            className="w-full h-auto text-xs"
-            role="img"
-            aria-label="CrowdWise Data Flow Diagram"
-          >
-            {/* Box 1: GTFS Schedule */}
-            <rect x="10" y="20" width="130" height="90" rx="4" fill="#F7F8F6" stroke="#DDE2E3" strokeWidth="1.5" />
-            <text x="75" y="55" textAnchor="middle" fill="#142B3B" fontWeight="600" fontSize="11">Delhi GTFS</text>
-            <text x="75" y="72" textAnchor="middle" fill="#5F6B73" fontSize="9.5">6,862 Stops</text>
-            <text x="75" y="87" textAnchor="middle" fill="#5F6B73" fontSize="9.5">2,574 Routes</text>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          Ticket records from the Delhi bus system: handheld machine (ETM) tickets and e-tickets, covering about five weeks. Routes, stops and scheduled times come from the public Delhi bus timetable.
+        </p>
 
-            {/* Arrow 1 */}
-            <path d="M 140 65 L 180 65" stroke="#147D78" strokeWidth="2" strokeDasharray="3 3" />
-            <polygon points="180,62 186,65 180,68" fill="#147D78" />
+        {/* Horizontal Pipeline Diagram matching Screenshot 4 */}
+        <div className="overflow-x-auto py-2">
+          <div className="flex items-center gap-1.5 min-w-[700px] text-xs">
+            {/* Box 1 */}
+            <div className="bg-white border border-slate-200 rounded p-2.5 text-center flex-1 shadow-2xs">
+              <span className="font-bold text-slate-900 block text-[11px]">Ticket records</span>
+              <span className="text-[10px] text-slate-500 block">ETM, e-tickets</span>
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
 
-            {/* Box 2: ETM Tickets */}
-            <rect x="188" y="20" width="140" height="90" rx="4" fill="#F7F8F6" stroke="#DDE2E3" strokeWidth="1.5" />
-            <text x="258" y="55" textAnchor="middle" fill="#142B3B" fontWeight="600" fontSize="11">ETM Ticketing</text>
-            <text x="258" y="72" textAnchor="middle" fill="#5F6B73" fontSize="9.5">2.56M Transactions</text>
-            <text x="258" y="87" textAnchor="middle" fill="#5F6B73" fontSize="9.5">Oct 01–31, 2026</text>
+            {/* Box 2 */}
+            <div className="bg-white border border-slate-200 rounded p-2.5 text-center flex-1 shadow-2xs">
+              <span className="font-bold text-slate-900 block text-[11px]">Cleaning</span>
+              <span className="text-[10px] text-slate-500 block">duplicates out</span>
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
 
-            {/* Arrow 2 */}
-            <path d="M 328 65 L 368 65" stroke="#147D78" strokeWidth="2" />
-            <polygon points="368,62 374,65 368,68" fill="#147D78" />
+            {/* Box 3 */}
+            <div className="bg-white border border-slate-200 rounded p-2.5 text-center flex-1 shadow-2xs">
+              <span className="font-bold text-slate-900 block text-[11px]">Flow estimate</span>
+              <span className="text-[10px] text-slate-500 block">per stop, per trip</span>
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
 
-            {/* Box 3: Passenger Load Model */}
-            <rect x="376" y="20" width="140" height="90" rx="4" fill="#FFFFFF" stroke="#142B3B" strokeWidth="1.5" />
-            <text x="446" y="50" textAnchor="middle" fill="#142B3B" fontWeight="bold" fontSize="11">Load Model</text>
-            <text x="446" y="68" textAnchor="middle" fill="#147D78" fontSize="9.5">Alighting Estimation</text>
-            <text x="446" y="83" textAnchor="middle" fill="#5F6B73" fontSize="9.5">Stop-to-Stop Load</text>
+            {/* Box 4 */}
+            <div className="bg-white border border-slate-200 rounded p-2.5 text-center flex-1 shadow-2xs">
+              <span className="font-bold text-slate-900 block text-[11px]">Model</span>
+              <span className="text-[10px] text-slate-500 block">learns patterns</span>
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
 
-            {/* Arrow 3 */}
-            <path d="M 516 65 L 556 65" stroke="#147D78" strokeWidth="2" />
-            <polygon points="556,62 562,65 556,68" fill="#147D78" />
+            {/* Box 5 */}
+            <div className="bg-white border border-slate-200 rounded p-2.5 text-center flex-1 shadow-2xs">
+              <span className="font-bold text-slate-900 block text-[11px]">Crowd level</span>
+              <span className="text-[10px] text-slate-500 block">low to high</span>
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
 
-            {/* Box 4: Journey Planner */}
-            <rect x="564" y="20" width="105" height="90" rx="4" fill="#142B3B" />
-            <text x="616" y="55" textAnchor="middle" fill="#FFFFFF" fontWeight="bold" fontSize="11">CrowdWise</text>
-            <text x="616" y="73" textAnchor="middle" fill="#DDE2E3" fontSize="9.5">Balanced Rank</text>
-            <text x="616" y="88" textAnchor="middle" fill="#F2B01E" fontSize="9">Crowd Labels</text>
-          </svg>
+            {/* Box 6 */}
+            <div className="bg-white border border-slate-200 rounded p-2.5 text-center flex-1 shadow-2xs">
+              <span className="font-bold text-slate-900 block text-[11px]">Planner</span>
+              <span className="text-[10px] text-slate-500 block">options + tips</span>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Table of Data Tiers */}
-      <section className="space-y-3">
-        <h2 className="text-base font-bold text-navy">
-          {lang === 'hi' ? 'डेटा स्रोत और स्तर' : 'Data Tiers & Sources'}
+      {/* Section 2: Where each number comes from */}
+      <section className="space-y-2">
+        <h2 className="text-sm font-bold text-slate-900">
+          Where each number comes from
         </h2>
-        <div className="overflow-x-auto border border-border rounded-2xl shadow-sm bg-white">
+        <div className="overflow-x-auto border border-slate-200 rounded-md">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-transit-bg border-b border-transit-border text-navy">
-                <th className="py-2.5 px-3 font-semibold">{lang === 'hi' ? 'स्तर' : 'Tier'}</th>
-                <th className="py-2.5 px-3 font-semibold">{lang === 'hi' ? 'स्रोत' : 'Source'}</th>
-                <th className="py-2.5 px-3 font-semibold">{lang === 'hi' ? 'उपयोग' : 'Usage'}</th>
-                <th className="py-2.5 px-3 font-semibold">{lang === 'hi' ? 'सीमा' : 'Limitations'}</th>
+              <tr className="border-b border-slate-200 bg-slate-50/50 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                <th className="py-2.5 px-3">SOURCE</th>
+                <th className="py-2.5 px-3">WHAT IT IS</th>
+                <th className="py-2.5 px-3">WHERE YOU SEE IT</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-transit-borderSubtle">
+            <tbody className="divide-y divide-slate-100">
               <tr>
-                <td className="py-2.5 px-3 font-bold text-navy">Tier 1</td>
-                <td className="py-2.5 px-3">Delhi Static GTFS</td>
-                <td className="py-2.5 px-3">Bus stops, route shapes, scheduled times</td>
-                <td className="py-2.5 px-3 text-transit-textMuted">Does not include live traffic delays</td>
+                <td className="py-2.5 px-3 font-bold text-slate-900">Timetable</td>
+                <td className="py-2.5 px-3 text-slate-700">Public bus timetable: routes, stops, scheduled times</td>
+                <td className="py-2.5 px-3 text-slate-500">Journey options, stop list, map</td>
               </tr>
               <tr>
-                <td className="py-2.5 px-3 font-bold text-navy">Tier 2</td>
-                <td className="py-2.5 px-3">Official ETM Ticketing</td>
-                <td className="py-2.5 px-3">Boardings, fare stages, vehicle trips (Oct 2026)</td>
-                <td className="py-2.5 px-3 text-transit-textMuted">Conductor tickets omit some daily pass holders</td>
+                <td className="py-2.5 px-3 font-bold text-slate-900">Ticket data</td>
+                <td className="py-2.5 px-3 text-slate-700">Ticket records supplied by the organizers</td>
+                <td className="py-2.5 px-3 text-slate-500">Crowd levels and graphs</td>
               </tr>
               <tr>
-                <td className="py-2.5 px-3 font-bold text-navy">Tier 3</td>
-                <td className="py-2.5 px-3">Historical Load Model</td>
-                <td className="py-2.5 px-3">Estimated passenger occupancy and crowding category</td>
-                <td className="py-2.5 px-3 text-transit-textMuted">Estimates represent typical conditions, not live GPS</td>
+                <td className="py-2.5 px-3 font-bold text-slate-900">Estimated</td>
+                <td className="py-2.5 px-3 text-slate-700">Worked out by the model from past patterns</td>
+                <td className="py-2.5 px-3 text-slate-500">Crowd levels, leave-earlier tips</td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      {/* Real Validation Results */}
-      <section className="space-y-3">
-        <h2 className="text-base font-bold text-navy">
-          {lang === 'hi' ? 'मॉडल सत्यापन परिणाम' : 'Validation & Sanity Checks'}
+      {/* Section 3: What the crowd levels mean */}
+      <section className="space-y-2">
+        <h2 className="text-sm font-bold text-slate-900">
+          What the crowd levels mean
         </h2>
-        <div className="border border-border rounded-2xl shadow-sm bg-white p-5 space-y-2 text-xs">
-          <div className="flex items-start gap-2">
-            <CheckCircle2 className="w-4 h-4 text-crowd-low shrink-0 mt-0.5" />
-            <div>
-              <strong className="text-navy">{lang === 'hi' ? 'पीक गुणक सत्यापन: ' : 'Peak multiplier check: '}</strong>
-              <span>
-                {lang === 'hi'
-                  ? 'सुबह 8–10 बजे दोपहर की तुलना में 2.47 गुना और शाम को 1.84 गुना अधिक भीड़ दर्ज की गई।'
-                  : 'AM peak load reaches 2.47× midday baseline; PM peak reaches 1.84× midday baseline.'}
-              </span>
-            </div>
+        <div className="overflow-x-auto border border-slate-200 rounded-md">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50/50 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                <th className="py-2.5 px-3">LEVEL</th>
+                <th className="py-2.5 px-3">MEANING</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              <tr>
+                <td className="py-2.5 px-3 whitespace-nowrap">
+                  <CrowdIndicator category="low" size="sm" />
+                </td>
+                <td className="py-2.5 px-3 text-slate-600">
+                  Lower than about half of all route and hour slots in the data
+                </td>
+              </tr>
+              <tr>
+                <td className="py-2.5 px-3 whitespace-nowrap">
+                  <CrowdIndicator category="moderate" size="sm" />
+                </td>
+                <td className="py-2.5 px-3 text-slate-600">
+                  In the middle range of the data
+                </td>
+              </tr>
+              <tr>
+                <td className="py-2.5 px-3 whitespace-nowrap">
+                  <CrowdIndicator category="high" size="sm" />
+                </td>
+                <td className="py-2.5 px-3 text-slate-600">
+                  Among the busiest slots in the data
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[11px] text-slate-500">
+          The cut-off points are our own choice and may change. Levels compare slots with each other. They are not a count of seats.
+        </p>
+      </section>
+
+      {/* Section 4: How well it works */}
+      <section className="space-y-2.5">
+        <h2 className="text-sm font-bold text-slate-900">
+          How well it works
+        </h2>
+        <div className="overflow-x-auto border border-slate-200 rounded-md">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50/50 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                <th className="py-2.5 px-3">METHOD</th>
+                <th className="py-2.5 px-3">ERROR ON UNSEEN DAYS</th>
+                <th className="py-2.5 px-3">RANKING MATCH</th>
+                <th className="py-2.5 px-3">LEVEL MATCH</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              <tr>
+                <td className="py-2.5 px-3 font-semibold text-slate-800">Simple average</td>
+                <td className="py-2.5 px-3 text-slate-600 tabular-nums">0.31</td>
+                <td className="py-2.5 px-3 text-slate-600 tabular-nums">0.62</td>
+                <td className="py-2.5 px-3 text-slate-600 tabular-nums font-medium">56%</td>
+              </tr>
+              <tr>
+                <td className="py-2.5 px-3 font-semibold text-blue-900">Random Forest</td>
+                <td className="py-2.5 px-3 text-emerald-700 tabular-nums font-semibold">0.24</td>
+                <td className="py-2.5 px-3 text-emerald-700 tabular-nums font-semibold">0.74</td>
+                <td className="py-2.5 px-3 text-emerald-700 tabular-nums font-bold">67%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[11px] text-slate-500">
+          Sample cases in this mockup. The real page shows results on the final week of data that the model never saw.
+        </p>
+
+        {/* 3 Validation Check Results matching Screenshot 4 */}
+        <div className="border border-slate-200 rounded-md bg-white divide-y divide-slate-100 text-xs">
+          <div className="p-2.5 flex items-center gap-2.5">
+            <span className="font-bold text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+              Pass
+            </span>
+            <span className="text-slate-700">
+              Weekday morning and evening are busier than midday and late night
+            </span>
           </div>
 
-          <div className="flex items-start gap-2">
-            <CheckCircle2 className="w-4 h-4 text-crowd-low shrink-0 mt-0.5" />
-            <div>
-              <strong className="text-navy">{lang === 'hi' ? 'भौतिक अखंडता नियम: ' : 'Physical non-negativity: '}</strong>
-              <span>
-                {lang === 'hi'
-                  ? 'प्रत्येक स्टॉप खंड पर बस में यात्रियों की न्यूनतम संख्या शून्य या उससे अधिक है (0% नकारात्मक मान)।'
-                  : 'Zero negative passenger load violations across all 3.32M processed segment facts.'}
-              </span>
-            </div>
+          <div className="p-2.5 flex items-center gap-2.5">
+            <span className="font-bold text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+              Pass
+            </span>
+            <span className="text-slate-700">
+              Weekdays are busier than Sundays across the network
+            </span>
           </div>
 
-          <div className="flex items-start gap-2">
-            <CheckCircle2 className="w-4 h-4 text-crowd-low shrink-0 mt-0.5" />
-            <div>
-              <strong className="text-navy">{lang === 'hi' ? 'कार्यदिवस बनाम रविवार: ' : 'Weekday vs Sunday ratio: '}</strong>
-              <span>
-                {lang === 'hi'
-                  ? 'कार्यदिवस का औसत भार रविवार की तुलना में 2.08 गुना अधिक है।'
-                  : 'Weekday commuter volume strictly exceeds Sunday demand by 2.08×.'}
-              </span>
-            </div>
+          <div className="p-2.5 flex items-center gap-2.5">
+            <span className="font-bold text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+              Review
+            </span>
+            <span className="text-slate-700">
+              Direction pattern on commuter routes: morning inbound, evening outbound
+            </span>
           </div>
         </div>
       </section>
 
-      {/* Technical Glossary */}
-      <section className="space-y-3">
-        <h2 className="text-base font-bold text-navy">
-          {lang === 'hi' ? 'शब्दावली (Glossary)' : 'Technical Glossary'}
+      {/* Section 5: What it cannot tell you */}
+      <section className="space-y-2">
+        <h2 className="text-sm font-bold text-slate-900">
+          What it cannot tell you
         </h2>
-        <dl className="border border-border rounded-2xl shadow-sm bg-white divide-y divide-transit-borderSubtle text-xs overflow-hidden">
-          <div className="p-3">
-            <dt className="font-bold text-navy">ETM (Electronic Ticketing Machine)</dt>
-            <dd className="text-transit-textMuted mt-0.5">
-              Handheld ticketing machines carried by Delhi bus conductors that record boarding stops, fares, and transaction timestamps.
-            </dd>
-          </div>
-          <div className="p-3">
-            <dt className="font-bold text-navy">GTFS (General Transit Feed Specification)</dt>
-            <dd className="text-transit-textMuted mt-0.5">
-              The worldwide standard data format for public transit timetables, bus stop locations, and route trajectories.
-            </dd>
-          </div>
-          <div className="p-3">
-            <dt className="font-bold text-navy">
-              {lang === 'hi' ? 'RCI (रिलेटिव क्राउडिंग इंडेक्स)' : 'RCI (Relative Crowding Index)'}
-            </dt>
-            <dd className="text-transit-textMuted mt-0.5">
-              {lang === 'hi'
-                ? 'एक मानकीकृत 0–100 सापेक्ष भीड़ संकेतक जो विभिन्न रूटों और समय पर अपेक्षित बस भीड़ स्तर को दर्शाता है, न कि कोई सटीक यात्री प्रतिशत।'
-                : 'A normalized 0–100 relative crowding indicator representing expected bus crowdedness across routes and times of day, rather than an exact occupancy percentage.'}
-            </dd>
-          </div>
-          <div className="p-3">
-            <dt className="font-bold text-navy">WAPE (Weighted Absolute Percentage Error)</dt>
-            <dd className="text-transit-textMuted mt-0.5">
-              Statistical benchmark measuring prediction accuracy across high-volume transit routes without overweighting empty early-morning trips.
-            </dd>
-          </div>
-        </dl>
+        <ul className="list-disc list-inside space-y-1.5 text-xs text-slate-600 pl-1">
+          <li>Tickets are not passengers. Some riders, such as free-travel or pass holders, may be missing or counted differently.</li>
+          <li>The data may cover only part of all travel, so levels are relative, not exact.</li>
+          <li>Times are scheduled, not live. Crowd levels are typical for that hour, not a count on one bus.</li>
+          <li>Routes with little data show "Not enough data".</li>
+        </ul>
       </section>
 
-      {/* Privacy Note */}
-      <section className="space-y-2 border-t border-transit-border pt-4">
-        <h2 className="text-sm font-bold text-navy flex items-center gap-1.5">
-          <ShieldCheck className="w-4 h-4 text-teal" />
-          {lang === 'hi' ? 'गोपनीयता सूचना' : 'Privacy Note'}
+      {/* Section 6: Terms */}
+      <section className="space-y-2 border-t border-slate-200 pt-4">
+        <h2 className="text-sm font-bold text-slate-900">
+          Terms
         </h2>
-        <p className="text-xs text-transit-textMuted leading-relaxed">
-          {lang === 'hi'
-            ? 'आपकी हालिया खोजें केवल आपके अपने ब्राउज़र (localStorage) में सुरक्षित रहती हैं और हमारे सर्वर पर संग्रहीत नहीं होती हैं। "मेरा स्थान उपयोग करें" केवल आपके निकटतम स्टॉप खोजने के लिए उपकरण में प्रोसेस होता है और किसी तीसरे पक्ष के साथ साझा नहीं किया जाता।'
-            : 'Your searches and recent history remain strictly on your device (in browser localStorage) and are never logged to our database. When you tap "Use my location", GPS coordinates are processed solely on your device to calculate stop distances and are never uploaded or tracked.'}
-        </p>
-      </section>
-
-      {/* Source Credits */}
-      <section className="space-y-2 border-t border-transit-border pt-4 text-xs text-transit-textMuted">
-        <h3 className="font-semibold text-navy">
-          {lang === 'hi' ? 'डेटा श्रेय एवं आभार' : 'Source Credits'}
-        </h3>
-        <p>
-          Map data ©{' '}
-          <a
-            href="https://www.openstreetmap.org/copyright"
-            target="_blank"
-            rel="noreferrer"
-            className="text-teal underline"
-          >
-            OpenStreetMap contributors
-          </a>
-          . Timetable and bus telemetry data provided through the Delhi Transport Stack Hackathon 2026.
-        </p>
+        <div className="space-y-1.5 text-xs text-slate-600">
+          <p>
+            <strong className="text-slate-900">ETM:</strong> the handheld machine conductors use to issue tickets.
+          </p>
+          <p>
+            <strong className="text-slate-900">Scheduled:</strong> taken from the timetable.
+          </p>
+          <p>
+            <strong className="text-slate-900">Typical:</strong> the usual level for that route, day type and hour.
+          </p>
+          <p>
+            <strong className="text-slate-900">RCI:</strong> Relative Crowding Index, a normalized 0–100 indicator comparing passenger load across hours.
+          </p>
+          <p>
+            <strong className="text-slate-900">DTC Pink Pass:</strong> Fare-free single-journey travel passes issued to female commuters under Delhi Government policy.
+          </p>
+        </div>
       </section>
     </div>
   );

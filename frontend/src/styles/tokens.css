@@ -12,11 +12,11 @@
   --color-teal-tint: #E6F7F7;
   --color-accent-gold: #FFA800;
 
-  /* Surfaces & Warm Transit Background (Direct from design.md) */
-  --color-background: #FDF5F2;
+  /* Surfaces & Clean Light Background */
+  --color-background: #F5F7FA;
   --color-surface: #FFFFFF;
-  --color-border: #E8E2DE;
-  --color-border-subtle: #F3ECE8;
+  --color-border: #E2E8F0;
+  --color-border-subtle: #EDF2F7;
 
   /* Typography / Text Colors (Contrast >= 7:1 for key text) */
   --color-text: #142B3B;
