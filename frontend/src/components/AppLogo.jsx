@@ -57,32 +57,23 @@ export function CrowdWiseBarIcon({ size = 20, className = '' }) {
   );
 }
 
-export default function AppLogo({ isLanding = false, className = '' }) {
-  const location = useLocation();
-  const onLanding = isLanding || location.pathname === '/';
-
-  if (onLanding) {
-    return (
-      <div className={`flex items-center gap-2.5 select-none ${className}`}>
-        <DelhiBusFrontIcon size={34} />
-        <div className="flex flex-col">
-          <span className="font-extrabold text-[17px] tracking-tight text-slate-900 leading-none">
-            Delhi Bus
+export default function AppLogo({ className = '' }) {
+  return (
+    <div className={`flex items-center gap-2.5 select-none ${className}`}>
+      <DelhiBusFrontIcon size={34} />
+      <div className="flex flex-col">
+        <div className="flex items-center gap-1.5 leading-none">
+          <span className="font-bold text-lg tracking-tight text-[#004327]">
+            CrowdWise
           </span>
-          <span className="text-[10px] text-slate-500 font-medium tracking-tight mt-0.5 leading-none">
-            Smarter. Comfier. Together.
+          <span className="text-[10px] font-bold px-1.5 py-0.5 bg-[#D8E6DD] text-[#121E19] rounded tracking-wider uppercase">
+            DELHI
           </span>
         </div>
+        <span className="text-[11px] text-[#404942] font-medium tracking-tight mt-0.5 leading-none">
+          Smarter journeys. Better travel.
+        </span>
       </div>
-    );
-  }
-
-  return (
-    <div className={`flex items-center gap-2 select-none ${className}`}>
-      <CrowdWiseBarIcon size={20} />
-      <span className="font-bold text-[17px] tracking-tight text-slate-900 leading-none">
-        CrowdWise
-      </span>
     </div>
   );
 }
