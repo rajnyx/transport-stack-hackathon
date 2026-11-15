@@ -45,6 +45,19 @@ export default function RouteCrowdingChart({
     return `${h}:${m} ${period}`;
   }, [departureTime]);
 
+  // Closest x-axis point for reference line
+  const closestHourLabel = useMemo(() => {
+    if (!departureTime) return '6 pm';
+    const parts = departureTime.split(':');
+    let h = parseInt(parts[0], 10);
+    if (isNaN(h)) return '6 pm';
+    if (h < 6) h = 6;
+    if (h > 21) h = 21;
+    const period = h >= 12 ? 'pm' : 'am';
+    const displayH = h % 12 || 12;
+    return `${displayH} ${period}`;
+  }, [departureTime]);
+
   const chartData = [
     { hour: '6 am', hourNum: 6, weekday: 28, weekend: 18 },
     { hour: '7 am', hourNum: 7, weekday: 58, weekend: 32 },
@@ -115,7 +128,7 @@ export default function RouteCrowdingChart({
 
             {/* Vertical Reference Line for Selected Departure Time with Pin Tag */}
             <ReferenceLine
-              x="6 pm"
+              x={closestHourLabel}
               stroke="#136c46"
               strokeDasharray="2 2"
               strokeWidth={1.5}

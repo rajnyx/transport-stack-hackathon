@@ -60,7 +60,7 @@ export default function TransitRow({
         onClick={onSelect}
         className={`bg-white border-2 border-[#145c3a] rounded-xl shadow-md overflow-hidden select-none cursor-pointer transition-all ${className}`}
       >
-        {/* Top Header inside card: "Recommended for fastest" & "Why" */}
+        {/* Top Header inside card: "Recommended for fastest" */}
         <div className="bg-[#e9f7ee] border-b border-[#d8e6dd] px-4 py-2 flex items-center justify-between text-xs">
           <span className="font-bold text-[#145c3a]">
             {preference === 'least_crowded'
@@ -69,19 +69,6 @@ export default function TransitRow({
               ? (lang === 'hi' ? 'संतुलित यात्रा के लिए अनुशंसित' : 'Recommended for balanced route')
               : (lang === 'hi' ? 'सबसे तेज़ यात्रा (अनुशंसित)' : 'Recommended for fastest')}
           </span>
-          {onOpenWhyModal && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenWhyModal(option);
-              }}
-              className="text-[#136c46] hover:text-[#004327] font-semibold text-xs flex items-center gap-0.5"
-            >
-              <span>{lang === 'hi' ? 'विवरण' : 'Why'}</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
 
         {/* Card Body */}
@@ -151,26 +138,12 @@ export default function TransitRow({
             </div>
           </div>
 
-          {/* Row 5: Action Links */}
-          <div className="flex items-center justify-between pt-2 border-t border-[#d8e6dd] text-xs">
-            {onOpenWhyModal && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenWhyModal(option);
-                }}
-                className="text-[#136c46] hover:text-[#004327] font-semibold text-xs flex items-center gap-0.5"
-              >
-                <span>View scoring breakdown</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            )}
-
+          {/* Row 5: Action Link */}
+          <div className="flex items-center justify-end pt-2 border-t border-[#d8e6dd] text-xs">
             <Link
               to={`/route/${encodeURIComponent(routeNum)}`}
               onClick={(e) => e.stopPropagation()}
-              className="text-[#004327] hover:underline font-semibold text-xs ml-auto flex items-center gap-1"
+              className="text-[#004327] hover:underline font-semibold text-xs flex items-center gap-1"
             >
               <BarChart2 className="w-3.5 h-3.5" />
               <span>View 24h route profile</span>

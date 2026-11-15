@@ -1,6 +1,5 @@
 import React from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { User } from 'lucide-react';
 import AppLogo from './AppLogo';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -64,21 +63,13 @@ export default function Navbar() {
             <button
               type="button"
               onClick={toggleLang}
-              className="text-xs font-bold px-2.5 py-1 rounded-md border border-[#D8E6DD] text-[#121E19] hover:bg-[#E9F7EE] transition-colors flex items-center gap-1"
+              className="text-xs font-bold px-2.5 py-1 rounded-md border border-[#D8E6DD] text-[#121E19] hover:bg-[#E9F7EE] transition-colors flex items-center gap-1 cursor-pointer"
               aria-label={`Switch to ${lang === 'en' ? 'Hindi' : 'English'}`}
             >
               <span className={lang === 'en' ? 'font-black text-[#145C3A]' : 'text-[#707971]'}>EN</span>
               <span className="text-[#D8E6DD]">|</span>
               <span className={lang === 'hi' ? 'font-black text-[#145C3A]' : 'text-[#707971]'}>HI</span>
             </button>
-
-            {/* User Profile Avatar Circle (from Stitch) */}
-            <div
-              className="w-8 h-8 rounded-full bg-[#004327] text-white flex items-center justify-center shrink-0 cursor-pointer shadow-xs hover:bg-[#145C3A] transition-colors"
-              title="User Account"
-            >
-              <User className="w-4 h-4 text-white" />
-            </div>
           </div>
         </div>
       </header>

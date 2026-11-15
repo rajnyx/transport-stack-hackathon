@@ -10,12 +10,10 @@ import {
   BarChart2,
   Navigation,
   ShieldCheck,
-  ChevronDown,
   AlertCircle,
   ArrowLeftRight,
   CheckCircle,
   Sparkles,
-  History,
 } from 'lucide-react';
 import StopCombobox from '../components/primitives/StopCombobox';
 import DelhiBusHeroVisual from '../components/DelhiBusHeroVisual';
@@ -23,6 +21,24 @@ import { useTranslation } from '../i18n/LanguageContext';
 
 const RECENT_SEARCHES_KEY = 'crowdwise_recent_searches';
 const PREF_KEY = 'crowdwise_pref';
+
+const getCurrentTimeString = () => {
+  const d = new Date();
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+};
+
+const formatTime12h = (time24) => {
+  if (!time24) return '';
+  const parts = time24.split(':');
+  let h = parseInt(parts[0], 10);
+  if (isNaN(h)) return time24;
+  const m = parts[1] || '00';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${m} ${ampm}`;
+};
 
 export default function PlannerPage() {
   const navigate = useNavigate();
@@ -35,8 +51,11 @@ export default function PlannerPage() {
   const [destQuery, setDestQuery] = useState('Shivaji Stadium / Connaught Place');
   const [destStop, setDestStop] = useState({ stop_id: '365', stop_name: 'Shivaji Stadium Terminal (Connaught Place)' });
 
-  const [departureTime, setDepartureTime] = useState('18:00');
-  const [timeDisplay, setTimeDisplay] = useState('Today, 6:00 PM (Evening Peak)');
+  // Departure Time Mode: 'now' vs 'other'
+  const [departMode, setDepartMode] = useState('now');
+  const [currentLiveTime, setCurrentLiveTime] = useState(getCurrentTimeString);
+  const [customTime, setCustomTime] = useState(getCurrentTimeString);
+
   const [preference, setPreference] = useState(() => {
     try {
       return localStorage.getItem(PREF_KEY) || 'least_crowded';
@@ -55,7 +74,14 @@ export default function PlannerPage() {
   });
 
   const [formError, setFormError] = useState('');
-  const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+
+  // Keep live time updated every 30 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentLiveTime(getCurrentTimeString());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     document.title = lang === 'hi' ? 'दिल्ली बस | यात्रा योजना' : 'Delhi Bus — Your Crowdedness-Aware Journey Planner';
@@ -77,30 +103,6 @@ export default function PlannerPage() {
     setDestStop(tempStop);
   };
 
-  const handleHubClick = (hubName, stopId) => {
-    setDestQuery(hubName);
-    setDestStop({ stop_id: stopId || '365', stop_name: hubName });
-    setFormError('');
-  };
-
-  const timeOptions = [
-    { value: '08:00', label: 'Today, 8:00 AM (Morning Rush)' },
-    { value: '09:00', label: 'Today, 9:00 AM (Peak AM)' },
-    { value: '11:00', label: 'Today, 11:00 AM (Midday Low)' },
-    { value: '13:00', label: 'Today, 1:00 PM (Afternoon)' },
-    { value: '17:00', label: 'Today, 5:00 PM (Early PM)' },
-    { value: '18:00', label: 'Today, 6:00 PM (Evening Peak)' },
-    { value: '19:30', label: 'Today, 7:30 PM (Lower Crowd)' },
-    { value: '21:00', label: 'Today, 9:00 PM (Night Service)' },
-    { value: '08:30', label: 'Tomorrow Morning (08:30 AM)' },
-  ];
-
-  const handleTimeSelect = (val, label) => {
-    setDepartureTime(val);
-    setTimeDisplay(label);
-    setShowTimeDropdown(false);
-  };
-
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
     setFormError('');
@@ -116,6 +118,8 @@ export default function PlannerPage() {
       );
       return;
     }
+
+    const effectiveDepTime = departMode === 'now' ? getCurrentTimeString() : (customTime || '18:00');
 
     const searchItem = {
       origin_id: originId,
@@ -138,20 +142,12 @@ export default function PlannerPage() {
       origin_name: originStop?.stop_name || originQuery,
       dest_id: destId,
       dest_name: destStop?.stop_name || destQuery,
-      departure_time: departureTime,
+      departure_time: effectiveDepTime,
       preference,
     });
 
     navigate(`/results?${params.toString()}`);
   };
-
-  const popularHubs = [
-    { name: 'Kashmere Gate ISBT', id: '1025' },
-    { name: 'Nehru Place Bus Terminal', id: '2559' },
-    { name: 'Dhaula Kuan', id: '3102' },
-    { name: 'AIIMS Ring Road', id: '2829' },
-    { name: 'Sarai Kale Khan', id: '2325' },
-  ];
 
   return (
     <div className="w-full flex flex-col space-y-10">
@@ -305,43 +301,69 @@ export default function PlannerPage() {
                   </div>
                 </div>
 
-                {/* Departure Time Field */}
-                <div className="md:col-span-4 bg-[#e9f7ee] hover:bg-[#e3f1e8] rounded-xl p-3 border border-[#d8e6dd]/60 transition-colors flex items-center justify-between gap-2 relative">
-                  <div
-                    className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer select-none"
-                    onClick={() => setShowTimeDropdown(!showTimeDropdown)}
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-[#d8e6dd] flex items-center justify-center text-[#004327] shrink-0">
-                      <Clock className="w-5 h-5" />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-semibold text-[#707971] uppercase tracking-wider block">
-                        {lang === 'hi' ? 'प्रस्थान समय' : 'Departure Time'}
-                      </span>
-                      <span className="font-semibold text-sm text-[#121e19] truncate">{timeDisplay}</span>
+                {/* Departure Time Field: Depart Now & Other custom time */}
+                <div className="md:col-span-4 bg-[#e9f7ee] hover:bg-[#e3f1e8] rounded-xl p-3 border border-[#d8e6dd]/60 transition-colors flex flex-col justify-between gap-1.5 min-h-[76px]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-[#707971] uppercase tracking-wider block">
+                      {lang === 'hi' ? 'प्रस्थान समय' : 'Departure Time'}
+                    </span>
+                    <div className="inline-flex rounded-lg bg-white/80 p-0.5 border border-[#d8e6dd]">
+                      <button
+                        type="button"
+                        onClick={() => setDepartMode('now')}
+                        className={`px-2.5 py-0.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                          departMode === 'now'
+                            ? 'bg-[#145c3a] text-white shadow-xs'
+                            : 'text-[#404942] hover:text-[#121e19]'
+                        }`}
+                      >
+                        {lang === 'hi' ? 'अभी निकलें' : 'Depart now'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDepartMode('other')}
+                        className={`px-2.5 py-0.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                          departMode === 'other'
+                            ? 'bg-[#145c3a] text-white shadow-xs'
+                            : 'text-[#404942] hover:text-[#121e19]'
+                        }`}
+                      >
+                        {lang === 'hi' ? 'अन्य समय' : 'Other'}
+                      </button>
                     </div>
                   </div>
-                  <ChevronDown
-                    className="w-4 h-4 text-[#707971] shrink-0 cursor-pointer"
-                    onClick={() => setShowTimeDropdown(!showTimeDropdown)}
-                  />
 
-                  {/* Time dropdown */}
-                  {showTimeDropdown && (
-                    <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-[#d8e6dd] rounded-xl shadow-xl z-50 py-1.5 text-xs">
-                      {timeOptions.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => handleTimeSelect(opt.value, opt.label)}
-                          className="w-full text-left px-3.5 py-2.5 hover:bg-[#e9f7ee] flex items-center justify-between text-[#121e19] transition-colors"
-                        >
-                          <span className={departureTime === opt.value ? 'font-bold text-[#004327]' : ''}>
-                            {opt.label}
-                          </span>
-                          {departureTime === opt.value && <span className="text-[#136c46] font-bold">✓</span>}
-                        </button>
-                      ))}
+                  {departMode === 'now' ? (
+                    <div className="flex items-center gap-2.5 pt-0.5">
+                      <div className="w-8 h-8 rounded-lg bg-[#d8e6dd] flex items-center justify-center text-[#004327] shrink-0">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-[#121e19]">
+                          {formatTime12h(currentLiveTime)}
+                        </span>
+                        <span className="text-[10px] font-semibold bg-[#145c3a]/10 text-[#145c3a] px-2 py-0.5 rounded-full border border-[#145c3a]/20">
+                          {lang === 'hi' ? 'वर्तमान समय' : 'Live Clock'}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2.5 pt-0.5">
+                      <div className="w-8 h-8 rounded-lg bg-[#145c3a] text-white flex items-center justify-center shrink-0">
+                        <Clock className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <input
+                          type="time"
+                          value={customTime}
+                          onChange={(e) => setCustomTime(e.target.value)}
+                          className="bg-white border border-[#d8e6dd] rounded-lg px-2.5 py-1 text-sm font-bold text-[#121e19] focus:outline-none focus:ring-2 focus:ring-[#145c3a] cursor-pointer shadow-2xs"
+                          aria-label="Choose departure time"
+                        />
+                        <span className="text-xs font-semibold text-[#145c3a] truncate">
+                          ({formatTime12h(customTime)})
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -407,23 +429,6 @@ export default function PlannerPage() {
                   <span>{lang === 'hi' ? 'मेरी यात्रा खोजें' : 'Find My Journey'}</span>
                   <ArrowRight className="w-4 h-4 text-white" />
                 </button>
-              </div>
-
-              {/* Quick Suggestion Terminal Tags */}
-              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#d8e6dd]">
-                <span className="text-xs text-[#707971] flex items-center gap-1">
-                  <History className="w-3.5 h-3.5" /> {lang === 'hi' ? 'प्रमुख हब:' : 'Popular hubs:'}
-                </span>
-                {popularHubs.map((hub) => (
-                  <button
-                    key={hub.id}
-                    type="button"
-                    onClick={() => handleHubClick(hub.name, hub.id)}
-                    className="px-2.5 py-1 rounded bg-[#e9f7ee] hover:bg-[#e3f1e8] text-[#121e19] text-xs font-medium transition-colors cursor-pointer"
-                  >
-                    {hub.name}
-                  </button>
-                ))}
               </div>
             </form>
           </div>

@@ -8,8 +8,27 @@ import LeafletRouteMap from '../components/LeafletRouteMap';
 import JourneyItinerary from '../components/JourneyItinerary';
 import RouteCrowdingChart from '../components/RouteCrowdingChart';
 import Skeleton from '../components/primitives/Skeleton';
-import WhyThisRouteModal from '../components/WhyThisRouteModal';
 import { useTranslation } from '../i18n/LanguageContext';
+
+const formatTime12h = (timeStr) => {
+  if (!timeStr) return '6:00 pm';
+  const parts = timeStr.split(':');
+  let h = parseInt(parts[0], 10);
+  if (isNaN(h)) return timeStr;
+  const m = parts[1] || '00';
+  const ampm = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
+  return `${h}:${m} ${ampm}`;
+};
+
+const addMinutes = (timeStr, mins) => {
+  const parts = (timeStr || '18:00').split(':');
+  let totalMinutes = parseInt(parts[0] || '18', 10) * 60 + parseInt(parts[1] || '00', 10) + mins;
+  totalMinutes = (totalMinutes % 1440 + 1440) % 1440;
+  const h = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+  const m = String(totalMinutes % 60).padStart(2, '0');
+  return `${h}:${m}`;
+};
 
 export default function ResultsPage() {
   const location = useLocation();
@@ -30,7 +49,6 @@ export default function ResultsPage() {
   const [planData, setPlanData] = useState(null);
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
   const [showCompare, setShowCompare] = useState(false);
-  const [modalOption, setModalOption] = useState(null);
   const [routeProfileData, setRouteProfileData] = useState(null);
   const [weekendProfileData, setWeekendProfileData] = useState(null);
 
@@ -65,14 +83,25 @@ export default function ResultsPage() {
 
   const rawOptions = planData?.options || [];
 
-  // Robust fallback options if API returns fewer items for simulated testing
-  const options = rawOptions.length >= 4 ? rawOptions : [
+  // If API returns options, dynamically map their scheduled departures around user's chosen time
+  const options = rawOptions.length > 0 ? rawOptions.map((opt, idx) => {
+    const dep = opt.scheduled_departure ? opt.scheduled_departure.slice(0, 5) : addMinutes(departureTime, idx * 5);
+    const dur = Math.round(opt.total_duration_minutes ?? opt.total_time_min ?? 40);
+    const arr = opt.scheduled_arrival ? opt.scheduled_arrival.slice(0, 5) : addMinutes(dep, dur);
+    return {
+      ...opt,
+      scheduled_departure: dep,
+      scheduled_arrival: arr,
+      total_time_min: dur,
+    };
+  }) : [
+    // Realistic fallback options centered around the user's chosen departureTime
     {
       route_id: '73UP',
       route_short_name: '73UP',
       route_long_name: 'Anand Vihar ISBT to Shivaji Stadium Terminal',
-      scheduled_departure: '18:00',
-      scheduled_arrival: '18:40',
+      scheduled_departure: departureTime,
+      scheduled_arrival: addMinutes(departureTime, 40),
       total_time_min: 40,
       travel_time_min: 35,
       wait_time_min: 5,
@@ -87,8 +116,8 @@ export default function ResultsPage() {
       route_id: '85DOWN',
       route_short_name: '85DOWN',
       route_long_name: 'Shivaji Stadium to Anand Vihar ISBT',
-      scheduled_departure: '18:00',
-      scheduled_arrival: '18:50',
+      scheduled_departure: departureTime,
+      scheduled_arrival: addMinutes(departureTime, 50),
       total_time_min: 50,
       travel_time_min: 45,
       wait_time_min: 5,
@@ -103,8 +132,8 @@ export default function ResultsPage() {
       route_id: '764',
       route_short_name: '764',
       route_long_name: 'Najafgarh to Connaught Place',
-      scheduled_departure: '18:05',
-      scheduled_arrival: '18:51',
+      scheduled_departure: addMinutes(departureTime, 5),
+      scheduled_arrival: addMinutes(departureTime, 51),
       total_time_min: 46,
       travel_time_min: 40,
       wait_time_min: 6,
@@ -119,8 +148,8 @@ export default function ResultsPage() {
       route_id: '534',
       route_short_name: '534',
       route_long_name: 'Mori Gate to Nehru Place',
-      scheduled_departure: '18:10',
-      scheduled_arrival: '19:02',
+      scheduled_departure: addMinutes(departureTime, 10),
+      scheduled_arrival: addMinutes(departureTime, 62),
       total_time_min: 52,
       travel_time_min: 44,
       wait_time_min: 8,
@@ -179,7 +208,7 @@ export default function ResultsPage() {
               <span>{destName}</span>
             </h1>
             <p className="text-xs text-[#404942] mt-0.5">
-              Leaves about 6:00 pm • Based on past ticket data for this time of day
+              Leaves about {formatTime12h(departureTime)} • Based on past ticket data for this time of day
             </p>
           </div>
         </div>
@@ -245,7 +274,7 @@ export default function ResultsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* LEFT COLUMN: Options Count + Transit Cards + Route Crowding Chart */}
           <div className="lg:col-span-5 space-y-4">
-            {/* Header: "4 options found" | "Ranked for: [Preference]" */}
+            {/* Header: "N options found" | "Ranked for: [Preference]" */}
             <div className="flex items-center justify-between text-xs text-[#707971] px-1">
               <span className="font-bold text-[#121e19]">
                 {options.length} options found
@@ -265,7 +294,6 @@ export default function ResultsPage() {
                   isSelected={selectedOptionIndex === idx}
                   preference={preference}
                   onSelect={() => setSelectedOptionIndex(idx)}
-                  onOpenWhyModal={(item) => setModalOption(item)}
                 />
               ))}
             </div>
@@ -334,16 +362,6 @@ export default function ResultsPage() {
             />
           </div>
         </div>
-      )}
-
-      {/* Why This Route Modal */}
-      {modalOption && (
-        <WhyThisRouteModal
-          option={modalOption}
-          fastestOption={fastestOption}
-          preference={preference}
-          onClose={() => setModalOption(null)}
-        />
       )}
     </div>
   );

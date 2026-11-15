@@ -16,6 +16,26 @@ import { useTranslation } from '../i18n/LanguageContext';
  * - Origin & Destination labels
  * - "JOURNEY STOPS AND SCHEDULE" vertical stop-by-stop timeline with boarding badge
  */
+const formatTime12h = (timeStr) => {
+  if (!timeStr) return '6:00 pm';
+  const parts = timeStr.split(':');
+  let h = parseInt(parts[0], 10);
+  if (isNaN(h)) return timeStr;
+  const m = parts[1] || '00';
+  const ampm = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
+  return `${h}:${m} ${ampm}`;
+};
+
+const addMinutes = (timeStr, mins) => {
+  const parts = (timeStr || '18:00').split(':');
+  let totalMinutes = parseInt(parts[0] || '18', 10) * 60 + parseInt(parts[1] || '00', 10) + mins;
+  totalMinutes = (totalMinutes % 1440 + 1440) % 1440;
+  const h = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+  const m = String(totalMinutes % 60).padStart(2, '0');
+  return `${h}:${m}`;
+};
+
 export default function JourneyItinerary({
   option,
   departureTime = '18:00',
@@ -26,15 +46,18 @@ export default function JourneyItinerary({
 
   if (!option) return null;
 
-  const routeNum = option.route_short_name || option.route_id || '73UP';
-  const depTime = option.scheduled_departure ? option.scheduled_departure.slice(0, 5) : '6:00 pm';
-  const arrTime = option.scheduled_arrival ? option.scheduled_arrival.slice(0, 5) : '6:40 pm';
+  const rawDep = option.scheduled_departure || departureTime || '18:00';
+  const depTime24 = rawDep.length >= 5 ? rawDep.slice(0, 5) : rawDep;
   const durationMin = Math.round(
     option.timing?.total_duration_min ??
     option.total_time_min ??
     option.total_duration_minutes ??
     40
   );
+  const arrTime24 = option.scheduled_arrival ? option.scheduled_arrival.slice(0, 5) : addMinutes(depTime24, durationMin);
+  const depTime = formatTime12h(depTime24);
+  const arrTime = formatTime12h(arrTime24);
+  const routeNum = option.route_short_name || option.route_id || '73UP';
   const distKm = option.distance_km ?? option.timing?.distance_km ?? 13.4;
   const totalStops = option.stops_count ?? option.stops?.length ?? 25;
 
@@ -44,27 +67,27 @@ export default function JourneyItinerary({
     option.crowd_category ||
     'high';
 
-  // Realistic corridor stops with timing and distances
+  // Realistic corridor stops with timing and distances calculated from user departure time
   const fallbackStops = [
-    { name: 'Anand Vihar ISBT', dist: '0.0 km', time: '6:00 pm', isBoarding: true, note: 'Platform 4 • Terminal Bay' },
-    { name: 'Anand Vihar ISBT Main Road', dist: '+0.2 km', time: '6:01 pm' },
-    { name: 'EDM Mall / Gazipur Depot', dist: '+0.6 km', time: '6:03 pm' },
-    { name: 'Hasanpur Village', dist: '+1.0 km', time: '6:05 pm' },
-    { name: 'Hasanpur Depot', dist: '+1.6 km', time: '6:08 pm' },
-    { name: 'Karkardooma Crossing', dist: '+3.2 km', time: '6:11 pm' },
-    { name: 'New Rajdhani Enclave / Preet Vihar Metro', dist: '+3.4 km', time: '6:13 pm' },
-    { name: 'Swasthya Vihar / Preet Vihar', dist: '+3.9 km', time: '6:15 pm' },
-    { name: 'Nirman Vihar', dist: '+4.4 km', time: '6:17 pm' },
-    { name: 'Shakarpur Crossing', dist: '+4.7 km', time: '6:19 pm' },
-    { name: 'Laxmi Nagar Metro Station', dist: '+5.3 km', time: '6:21 pm' },
-    { name: 'Rainy Well / Shakarpur', dist: '+6.1 km', time: '6:23 pm' },
-    { name: 'Delhi Secretariat / ITO Bridge', dist: '+7.4 km', time: '6:26 pm' },
-    { name: 'ITO Vikas Minar', dist: '+8.2 km', time: '6:28 pm' },
-    { name: 'Tilak Bridge', dist: '+9.0 km', time: '6:30 pm' },
-    { name: 'Mandi House', dist: '+10.1 km', time: '6:32 pm' },
-    { name: 'Barakhamba Road Metro', dist: '+11.2 km', time: '6:35 pm' },
-    { name: 'Statesman House', dist: '+12.0 km', time: '6:37 pm' },
-    { name: 'Shivaji Stadium Terminal', dist: '+13.4 km', time: '6:40 pm', isAlighting: true, note: 'Alighting Platform' },
+    { name: 'Anand Vihar ISBT', dist: '0.0 km', time: depTime, isBoarding: true, note: 'Platform 4 • Terminal Bay' },
+    { name: 'Anand Vihar ISBT Main Road', dist: '+0.2 km', time: formatTime12h(addMinutes(depTime24, 1)) },
+    { name: 'EDM Mall / Gazipur Depot', dist: '+0.6 km', time: formatTime12h(addMinutes(depTime24, 3)) },
+    { name: 'Hasanpur Village', dist: '+1.0 km', time: formatTime12h(addMinutes(depTime24, 5)) },
+    { name: 'Hasanpur Depot', dist: '+1.6 km', time: formatTime12h(addMinutes(depTime24, 8)) },
+    { name: 'Karkardooma Crossing', dist: '+3.2 km', time: formatTime12h(addMinutes(depTime24, 11)) },
+    { name: 'New Rajdhani Enclave / Preet Vihar Metro', dist: '+3.4 km', time: formatTime12h(addMinutes(depTime24, 13)) },
+    { name: 'Swasthya Vihar / Preet Vihar', dist: '+3.9 km', time: formatTime12h(addMinutes(depTime24, 15)) },
+    { name: 'Nirman Vihar', dist: '+4.4 km', time: formatTime12h(addMinutes(depTime24, 17)) },
+    { name: 'Shakarpur Crossing', dist: '+4.7 km', time: formatTime12h(addMinutes(depTime24, 19)) },
+    { name: 'Laxmi Nagar Metro Station', dist: '+5.3 km', time: formatTime12h(addMinutes(depTime24, 21)) },
+    { name: 'Rainy Well / Shakarpur', dist: '+6.1 km', time: formatTime12h(addMinutes(depTime24, 23)) },
+    { name: 'Delhi Secretariat / ITO Bridge', dist: '+7.4 km', time: formatTime12h(addMinutes(depTime24, 26)) },
+    { name: 'ITO Vikas Minar', dist: '+8.2 km', time: formatTime12h(addMinutes(depTime24, 28)) },
+    { name: 'Tilak Bridge', dist: '+9.0 km', time: formatTime12h(addMinutes(depTime24, 30)) },
+    { name: 'Mandi House', dist: '+10.1 km', time: formatTime12h(addMinutes(depTime24, 32)) },
+    { name: 'Barakhamba Road Metro', dist: '+11.2 km', time: formatTime12h(addMinutes(depTime24, 35)) },
+    { name: 'Statesman House', dist: '+12.0 km', time: formatTime12h(addMinutes(depTime24, 37)) },
+    { name: 'Shivaji Stadium Terminal', dist: '+13.4 km', time: arrTime, isAlighting: true, note: 'Alighting Platform' },
   ];
 
   const stops = option.stops && option.stops.length > 5
