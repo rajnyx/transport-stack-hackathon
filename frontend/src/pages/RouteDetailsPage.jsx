@@ -227,26 +227,27 @@ export default function RouteDetailsPage() {
 
               const crowdBarColor =
                 segCrowd === 'high'
-                  ? 'bg-crowd-high'
+                  ? 'bg-[#C64B4B]'
                   : segCrowd === 'moderate'
-                  ? 'bg-crowd-mod'
-                  : 'bg-crowd-low';
+                  ? 'bg-[#E0A51A]'
+                  : 'bg-[#145C3A]';
 
               return (
-                <div key={stop.stop_id || idx} className="relative flex items-start gap-3">
-                  {/* Vertical Line & Dot */}
-                  <div className="flex flex-col items-center self-stretch">
-                    <span
-                      className={`w-3.5 h-3.5 rounded-full border-2 border-white shrink-0 mt-1 z-10 ${
-                        isFirst
-                          ? 'bg-teal'
-                          : isLast
-                          ? 'bg-navy'
-                          : 'bg-white border-navy ring-1 ring-navy'
-                      }`}
-                    />
+                <div key={stop.stop_id || idx} className="relative flex items-start">
+                  {/* Timeline Spine Column */}
+                  <div className="flex flex-col items-center mr-4 w-5 flex-shrink-0">
+                    {/* Node Dot */}
+                    {isFirst ? (
+                      <div className="w-4 h-4 rounded-full border-[3.5px] border-[#145C3A] bg-white flex-shrink-0 z-10" />
+                    ) : isLast ? (
+                      <div className="w-4 h-4 rounded-full bg-[#145C3A] ring-4 ring-[#145C3A]/20 flex-shrink-0 z-10" />
+                    ) : (
+                      <div className="w-2.5 h-2.5 my-0.5 rounded-full bg-[#BDC7C1] flex-shrink-0 z-10" />
+                    )}
+
+                    {/* Connecting line */}
                     {!isLast && (
-                      <span className={`w-1 flex-1 my-0.5 rounded-full ${crowdBarColor}`} />
+                      <div className={`w-[3px] h-10 ${crowdBarColor} rounded-full my-1 transition-colors duration-200`} />
                     )}
                   </div>
 
@@ -383,6 +384,7 @@ export default function RouteDetailsPage() {
                 <LeafletRouteMap
                   stops={stops}
                   shapePoints={routeInfo?.shape_points || []}
+                  crowdCategory={getSegmentCrowd(0)}
                   height="260px"
                 />
               </div>

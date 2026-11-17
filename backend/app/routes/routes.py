@@ -136,6 +136,41 @@ def get_route_details(route_id: str):
                 "distance_km": dist_val,
                 "cum_dist_km": dist_val,
             })
+
+    # Enrich stops with timeline fields and occupancyToNextStop
+    n_ord = len(ordered_stops)
+    ml_service = MLService.get_instance()
+    for idx, st in enumerate(ordered_stops):
+        st["id"] = st["stop_id"]
+        st["name"] = st["stop_name"]
+        st["isOrigin"] = (idx == 0)
+        st["isDestination"] = (idx == n_ord - 1)
+        st["is_origin"] = (idx == 0)
+        st["is_destination"] = (idx == n_ord - 1)
+        st["distanceKm"] = "0.0 km" if idx == 0 else f"+{round(st.get('distance_km', idx * 0.5), 1)} km"
+
+        dep_h = hour
+        approx_min = (idx * 2) % 60
+        period = "pm" if dep_h >= 12 else "am"
+        h12 = dep_h % 12 or 12
+        st["time"] = f"{h12}:{approx_min:02d} {period}"
+
+        if idx < n_ord - 1:
+            zid = st.get("zone_id", min(7, int(idx / max(1, n_ord - 1) * 8)))
+            pred = ml_service.predict_crowd(
+                route_id=clean_id,
+                direction_id=direction_id,
+                zone_id=int(zid),
+                day_type=day_type,
+                hour=hour,
+            )
+            rci = float(pred.get("rci", 50.0))
+            occ_ratio = round(max(0.15, min(0.95, rci / 100.0)), 2)
+            st["occupancyToNextStop"] = occ_ratio
+            st["occupancy_to_next_stop"] = occ_ratio
+        else:
+            st["occupancyToNextStop"] = None
+            st["occupancy_to_next_stop"] = None
             
     # Get 24-hour crowding profile for this route
     ml_service = MLService.get_instance()

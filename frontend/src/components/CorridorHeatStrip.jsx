@@ -23,8 +23,8 @@ export default function CorridorHeatStrip({ zones, title = "8-Zone Corridor Heat
   });
 
   const getZoneColor = (rci) => {
-    if (rci >= 85) return 'bg-red-500 text-white';
-    if (rci >= 50) return 'bg-amber-400 text-amber-950';
+    if (rci >= 75) return 'bg-red-500 text-white';
+    if (rci >= 40) return 'bg-amber-500 text-white';
     return 'bg-emerald-500 text-white';
   };
 
@@ -64,13 +64,13 @@ export default function CorridorHeatStrip({ zones, title = "8-Zone Corridor Heat
 
       <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded bg-emerald-500"></span> Not crowded (&lt;50)
+          <span className="w-2.5 h-2.5 rounded bg-emerald-500"></span> Not crowded (&lt;40)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded bg-amber-400"></span> Fairly crowded (50–85)
+          <span className="w-2.5 h-2.5 rounded bg-amber-500"></span> Fairly crowded (40–75)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded bg-red-500"></span> Very crowded (&gt;85)
+          <span className="w-2.5 h-2.5 rounded bg-red-500"></span> Very crowded (≥75)
         </span>
       </div>
     </div>

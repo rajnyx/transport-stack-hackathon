@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Zap, Users, Star, SlidersHorizontal, MapPin } from 'lucide-react';
 import { planJourney, getRouteCrowdProfile } from '../api';
@@ -7,8 +7,10 @@ import CompareTable from '../components/primitives/CompareTable';
 import LeafletRouteMap from '../components/LeafletRouteMap';
 import JourneyItinerary from '../components/JourneyItinerary';
 import RouteCrowdingChart from '../components/RouteCrowdingChart';
+import DepartureAdjustmentCard from '../components/DepartureAdjustmentCard';
 import Skeleton from '../components/primitives/Skeleton';
 import { useTranslation } from '../i18n/LanguageContext';
+import { CANONICAL_DELHI_25_STOPS } from '../utils/formatters';
 
 const formatTime12h = (timeStr) => {
   if (!timeStr) return '6:00 pm';
@@ -175,19 +177,61 @@ export default function ResultsPage() {
   const fastestOption = planData?.fastest_baseline || options[0];
 
   useEffect(() => {
-    if (selectedOption?.route_id) {
-      getRouteCrowdProfile(selectedOption.route_id, 'WEEKDAY')
+    const routeIdentifier = selectedOption?.route_short_name || selectedOption?.route_id;
+    if (routeIdentifier) {
+      setRouteProfileData(null);
+      setWeekendProfileData(null);
+      getRouteCrowdProfile(routeIdentifier, 'WEEKDAY')
         .then((res) => {
           if (res?.data) setRouteProfileData(res.data);
         })
         .catch(() => {});
-      getRouteCrowdProfile(selectedOption.route_id, 'SUNDAY')
+      getRouteCrowdProfile(routeIdentifier, 'SUNDAY')
         .then((res) => {
           if (res?.data) setWeekendProfileData(res.data);
         })
         .catch(() => {});
     }
-  }, [selectedOption?.route_id]);
+  }, [selectedOption?.route_id, selectedOption?.route_short_name]);
+
+  const leftColRef = useRef(null);
+  const mapCardRef = useRef(null);
+  const [itineraryHeight, setItineraryHeight] = useState(null);
+
+  useEffect(() => {
+    const updateHeight = () => {
+      if (window.innerWidth >= 1024 && leftColRef.current && mapCardRef.current) {
+        const leftH = leftColRef.current.offsetHeight;
+        const mapH = mapCardRef.current.offsetHeight;
+        const targetH = Math.round(leftH - mapH - 20);
+        if (targetH > 220) {
+          setItineraryHeight(targetH);
+          return;
+        }
+      }
+      setItineraryHeight(null);
+    };
+
+    updateHeight();
+    const rafId = requestAnimationFrame(updateHeight);
+
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => {
+        updateHeight();
+      });
+      if (leftColRef.current) ro.observe(leftColRef.current);
+      if (mapCardRef.current) ro.observe(mapCardRef.current);
+    }
+
+    window.addEventListener('resize', updateHeight);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (ro) ro.disconnect();
+      window.removeEventListener('resize', updateHeight);
+    };
+  }, [options.length, selectedOptionIndex, preference, planData]);
 
   const handlePreferenceChange = (newPref) => {
     setPreference(newPref);
@@ -281,10 +325,10 @@ export default function ResultsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* LEFT COLUMN: Options Count + Transit Cards + Route Crowding Chart */}
-          <div className="lg:col-span-5 space-y-4">
+          {/* LEFT COLUMN: Options Count + Transit Cards + Route Crowding Chart + Note */}
+          <div ref={leftColRef} className="lg:col-span-5 flex flex-col space-y-4">
             {/* Header: "N options found" | "Ranked for: [Preference]" */}
-            <div className="flex items-center justify-between text-xs text-[#707971] px-1">
+            <div className="flex items-center justify-between text-xs text-[#707971] px-1 flex-shrink-0">
               <span className="font-bold text-[#121e19]">
                 {options.length} options found
               </span>
@@ -294,7 +338,7 @@ export default function ResultsPage() {
             </div>
 
             {/* List of Transit Option Cards */}
-            <div className="space-y-3">
+            <div className="space-y-3 flex-shrink-0">
               {options.map((opt, idx) => (
                 <TransitRow
                   key={opt.trip_id || opt.route_id || idx}
@@ -308,18 +352,30 @@ export default function ResultsPage() {
             </div>
 
             {/* TYPICAL CROWD CHART (Placed in Left Column per Stitch Design) */}
-            <RouteCrowdingChart
-              routeNumber={selectedOption?.route_short_name || selectedOption?.route_id || '73UP'}
-              profileData={routeProfileData}
-              weekendProfileData={weekendProfileData}
-              departureTime={departureTime}
-            />
+            <div className="flex-shrink-0">
+              <RouteCrowdingChart
+                routeNumber={selectedOption?.route_short_name || selectedOption?.route_id || '73UP'}
+                option={selectedOption}
+                selectedOption={selectedOption}
+                profileData={routeProfileData}
+                weekendProfileData={weekendProfileData}
+                departureTime={departureTime}
+              />
+            </div>
+
+            {/* RECOMMENDED DEPARTURE ADJUSTMENT CARD (The Note - Natural Snug Height) */}
+            <div className="flex-shrink-0">
+              <DepartureAdjustmentCard
+                option={selectedOption}
+                departureTime={departureTime}
+              />
+            </div>
           </div>
 
           {/* RIGHT COLUMN: Protected Map + Journey Itinerary */}
-          <div className="lg:col-span-7 space-y-5">
+          <div className="lg:col-span-7 flex flex-col space-y-5">
             {/* Card 1: Map Card Container matching Stitch */}
-            <div className="bg-white border border-[#d8e6dd] rounded-xl shadow-sm overflow-hidden flex flex-col">
+            <div ref={mapCardRef} className="bg-white border border-[#d8e6dd] rounded-xl shadow-sm overflow-hidden flex flex-col flex-shrink-0">
               {/* Header above map */}
               <div className="px-4 py-3 bg-white border-b border-[#d8e6dd] flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
@@ -338,7 +394,7 @@ export default function ResultsPage() {
               {/* PROTECTED LEAFLET ROUTE MAP (100% UNTOUCHED & PRESERVED) */}
               <div data-protected-component="leaflet-delhi-map" id="existing-interactive-delhi-map">
                 <LeafletRouteMap
-                  stops={selectedOption?.stops || []}
+                  stops={(selectedOption?.stops && selectedOption.stops.length > 0) ? selectedOption.stops : CANONICAL_DELHI_25_STOPS}
                   shapePoints={selectedOption?.shape_points || []}
                   highlightOrigin={originId}
                   highlightDest={destId}
@@ -348,11 +404,14 @@ export default function ResultsPage() {
               </div>
             </div>
 
-            {/* Card 2: Journey Stops Schedule & Corridor Crowd Bar */}
-            <JourneyItinerary
-              option={selectedOption}
-              departureTime={departureTime}
-            />
+            {/* Card 2: Journey Stops Schedule */}
+            <div className="flex-shrink-0">
+              <JourneyItinerary
+                option={selectedOption}
+                departureTime={departureTime}
+                style={itineraryHeight ? { height: `${itineraryHeight}px` } : undefined}
+              />
+            </div>
           </div>
         </div>
       )}

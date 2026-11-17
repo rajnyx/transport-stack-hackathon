@@ -43,3 +43,20 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
 }
+
+/* Sleek custom scrollbar for journey stops viewport */
+#stops-scroll-viewport::-webkit-scrollbar {
+  width: 5px;
+}
+#stops-scroll-viewport::-webkit-scrollbar-track {
+  background: #f1fdf4;
+  border-radius: 8px;
+}
+#stops-scroll-viewport::-webkit-scrollbar-thumb {
+  background: #a7d7be;
+  border-radius: 8px;
+}
+#stops-scroll-viewport::-webkit-scrollbar-thumb:hover {
+  background: #145c3a;
+}
+

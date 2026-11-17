@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useRef } from 'react';
 import CrowdIndicator from './primitives/CrowdIndicator';
 import { useTranslation } from '../i18n/LanguageContext';
-import { formatTime12h } from '../utils/formatters';
+import { formatTime12h, getLegOccupancy, getSegmentColorClass, getStopCrowdColorClass, CANONICAL_DELHI_25_STOPS } from '../utils/formatters';
 
 const addMinutes = (timeStr, mins) => {
   const parts = (timeStr || '18:00').split(':');
@@ -17,9 +16,10 @@ export default function JourneyItinerary({
   option,
   departureTime = '18:00',
   className = '',
+  style = {},
 }) {
   const { lang } = useTranslation();
-  const [showAll, setShowAll] = useState(false);
+  const scrollViewportRef = useRef(null);
 
   if (!option) return null;
 
@@ -44,70 +44,65 @@ export default function JourneyItinerary({
     option.crowd_category ||
     'high';
 
-  // Dynamic segments along the corridor using only the 3 canonical crowd colors
+  // Dynamic segments along the corridor using canonical civic transit colors
   const zoneBreakdown = option.crowding?.zone_breakdown || option.zone_forecasts || [];
 
-  const corridorSegments = zoneBreakdown.length > 0
-    ? zoneBreakdown.map((z) => {
-        const cat = (z.category || z.crowd_level || '').toLowerCase();
-        let bg = '#94a3b8'; // grey unknown
-        if (cat.includes('low') || cat.includes('not')) bg = '#10b981';
-        else if (cat.includes('mod') || cat.includes('fairly')) bg = '#f59e0b';
-        else if (cat.includes('high') || cat.includes('very')) bg = '#ef4444';
+  const stops = option.stops && option.stops.length > 0
+    ? option.stops.map((s, idx) => {
+        const isFirst = idx === 0;
+        const isLast = idx === option.stops.length - 1;
+        const legOcc = getLegOccupancy(idx, option.stops.length, zoneBreakdown, crowdCategory);
+        // Prefer explicit s.occupancyToNextStop / s.occupancy_to_next_stop; fallback to calibrated legOcc
+        const occVal = (s.occupancyToNextStop !== undefined && s.occupancyToNextStop !== null)
+          ? s.occupancyToNextStop
+          : ((s.occupancy_to_next_stop !== undefined && s.occupancy_to_next_stop !== null)
+              ? s.occupancy_to_next_stop
+              : (legOcc.rci ? legOcc.rci / 100 : legOcc.category));
+
         return {
-          name: z.zone_name || `Zone ${z.zone_id}`,
-          color: bg,
-          level: cat.includes('low') ? 'Not crowded' : cat.includes('mod') ? 'Fairly crowded' : cat.includes('high') ? 'Very crowded' : 'Not enough data',
-          width: `${Math.max(15, Math.floor(100 / zoneBreakdown.length))}%`,
+          id: s.id || s.stop_id || `stop-${idx}`,
+          name: s.name || s.stop_name || `Stop ${idx + 1}`,
+          distanceKm: s.distanceKm || (typeof s.distance_km === 'string' ? s.distance_km : (typeof s.distance_km === 'number' ? (idx === 0 ? '0.0 km' : `+${s.distance_km.toFixed(1)} km`) : (idx === 0 ? '0.0 km' : `+${(idx * 0.5).toFixed(1)} km`))),
+          time: s.time || s.arrival_time_12h || (idx === 0 ? depTime : isLast ? arrTime : ''),
+          isOrigin: isFirst,
+          isDestination: isLast,
+          occupancyToNextStop: isLast ? null : occVal,
         };
       })
-    : [
-        // Default 3 corridor sections colored by the 3 canonical colors
-        {
-          name: 'Origin corridor',
-          color: crowdCategory === 'low' ? '#10b981' : crowdCategory === 'moderate' ? '#f59e0b' : '#ef4444',
-          level: crowdCategory === 'low' ? 'Not crowded' : crowdCategory === 'moderate' ? 'Fairly crowded' : 'Very crowded',
-          width: '35%',
-        },
-        {
-          name: 'Mid-route corridor',
-          color: crowdCategory === 'high' ? '#ef4444' : '#f59e0b',
-          level: crowdCategory === 'high' ? 'Very crowded' : 'Fairly crowded',
-          width: '35%',
-        },
-        {
-          name: 'Destination stretch',
-          color: '#10b981',
-          level: 'Not crowded',
-          width: '30%',
-        },
-      ];
+    : CANONICAL_DELHI_25_STOPS.map((s, idx) => {
+        const isFirst = idx === 0;
+        const isLast = idx === CANONICAL_DELHI_25_STOPS.length - 1;
+        const legOcc = getLegOccupancy(idx, CANONICAL_DELHI_25_STOPS.length, zoneBreakdown, crowdCategory);
+        const approxTime = formatTime12h(addMinutes(depTime24, s.minOffset));
 
-  const stops = option.stops && option.stops.length > 0
-    ? option.stops.map((s, idx) => ({
-        name: s.stop_name || `Stop ${idx + 1}`,
-        dist: idx === 0 ? '0.0 km' : `+${(idx * 0.5).toFixed(1)} km`,
-        time: s.arrival_time_12h || (idx === 0 ? depTime : idx === option.stops.length - 1 ? arrTime : ''),
-        isBoarding: idx === 0,
-        isAlighting: idx === option.stops.length - 1,
-        // No duplicate "BOARD HERE" in note
-        note: null,
-      }))
-    : [
-        { name: 'Boarding Terminal', dist: '0.0 km', time: depTime, isBoarding: true, note: null },
-        { name: 'En-route Stop 1', dist: '+2.5 km', time: formatTime12h(addMinutes(depTime24, 8)), isBoarding: false, note: null },
-        { name: 'En-route Stop 2', dist: '+5.0 km', time: formatTime12h(addMinutes(depTime24, 16)), isBoarding: false, note: null },
-        { name: 'En-route Stop 3', dist: '+8.2 km', time: formatTime12h(addMinutes(depTime24, 25)), isBoarding: false, note: null },
-        { name: 'Alighting Terminal', dist: `+${distKm} km`, time: arrTime, isAlighting: true, note: null },
-      ];
+        return {
+          id: s.id,
+          name: s.name,
+          distanceKm: s.dist,
+          time: isFirst ? depTime : (isLast ? arrTime : approxTime),
+          isOrigin: isFirst,
+          isDestination: isLast,
+          occupancyToNextStop: isLast ? null : (legOcc.rci / 100),
+        };
+      });
 
-  const visibleStops = showAll ? stops : stops.slice(0, 8);
-  const remainingCount = stops.length - 8;
+  const toggleScrollTopEnd = () => {
+    const el = scrollViewportRef.current || document.getElementById('stops-scroll-viewport');
+    if (el) {
+      el.scrollTo({
+        top: el.scrollTop > 50 ? 0 : el.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   return (
-    <div className={`bg-white border border-[#d8e6dd] rounded-xl p-5 shadow-sm space-y-5 ${className}`}>
+    <div
+      style={style}
+      className={`bg-white border border-[#d8e6dd] rounded-2xl p-5 shadow-sm space-y-4 flex flex-col h-full ${className}`}
+    >
       {/* 1. Route Summary Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#d8e6dd] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#d8e6dd] pb-4 flex-shrink-0">
         <div className="flex items-center gap-3">
           <span className="px-2.5 py-1 rounded bg-[#004327] text-white font-bold text-sm tracking-wide">
             {routeNum}
@@ -117,7 +112,7 @@ export default function JourneyItinerary({
               {depTime} – {arrTime} • {durationMin} min
             </h2>
             <span className="text-xs text-[#404942]">
-              {distKm} km route • {totalStops} stops • Scheduled service
+              {distKm} km route • {stops.length} stops • Scheduled service
             </span>
           </div>
         </div>
@@ -132,128 +127,122 @@ export default function JourneyItinerary({
         </div>
       </div>
 
-      {/* 2. Segmented Crowd Density Along Corridor */}
-      <div className="flex flex-col gap-2.5 bg-[#e9f7ee]/60 p-3.5 rounded-xl border border-[#d8e6dd]">
-        <div className="flex justify-between text-xs text-[#121e19] font-bold">
-          <span className="uppercase tracking-wider text-[11px]">CROWD ALONG THE ROUTE</span>
-          <span className="text-[#707971] font-normal text-[11px]">Estimated zone demand</span>
-        </div>
-
-        {/* Segmented Color Track (3 canonical crowd colors + grey for unknown) */}
-        <div className="w-full h-3 rounded flex overflow-hidden gap-0.5 bg-[#e2e8f0]">
-          {corridorSegments.map((seg, idx) => (
-            <div
-              key={idx}
-              className="h-full first:rounded-l last:rounded-r transition-all"
-              style={{ width: seg.width, backgroundColor: seg.color }}
-              title={`${seg.name}: ${seg.level}`}
-            />
-          ))}
-        </div>
-
-        {/* Small Legend below corridor track */}
-        <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-[#404942] pt-1">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#10b981]" />
-              <span>Not crowded</span>
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#f59e0b]" />
-              <span>Fairly crowded</span>
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#ef4444]" />
-              <span>Very crowded</span>
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#94a3b8]" />
-              <span>Not enough data</span>
+      {/* 2. Journey Stops and Schedule Card (Internal Scrollable Viewport filling available card height) */}
+      <div className="flex flex-col flex-1 min-h-0">
+        {/* Card Header (Pinned) */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900">
+              {lang === 'hi' ? 'यात्रा स्टॉप और समय सारिणी' : 'Journey Stops and Schedule'}
+            </h4>
+            <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/50">
+              {stops.length} {lang === 'hi' ? 'स्टॉप' : 'stops'}
             </span>
           </div>
-          <span className="text-[#707971]">Relative to typical corridor loads</span>
-        </div>
-      </div>
 
-      {/* 3. Stop-By-Stop Vertical Timeline */}
-      <div className="flex flex-col space-y-3 pt-1">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-[#121e19] uppercase tracking-wider">
-            JOURNEY STOPS AND SCHEDULE
-          </span>
-          <span className="text-[11px] text-[#707971]">Timetable Scheduled</span>
-        </div>
-
-        <div className="relative pl-6 flex flex-col">
-          {/* Continuous Timeline Vertical Guideline */}
-          <div className="absolute left-2.5 top-2.5 bottom-4 w-0.5 bg-[#d8e6dd]" />
-
-          {visibleStops.map((stop, idx) => (
-            <div key={idx} className="relative pb-3.5 flex items-start justify-between">
-              {/* Marker Circle */}
-              <div
-                className={`absolute -left-6 top-1 w-5 h-5 rounded-full flex items-center justify-center ring-4 ring-white ${
-                  stop.isBoarding
-                    ? 'bg-[#004327]'
-                    : stop.isAlighting
-                    ? 'bg-[#121e19]'
-                    : 'bg-[#94a3b8]'
-                }`}
-              >
-                <div className={`rounded-full ${stop.isBoarding || stop.isAlighting ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white'}`} />
-              </div>
-
-              {/* Stop info */}
-              <div className="flex flex-col pl-2 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-bold ${stop.isBoarding || stop.isAlighting ? 'text-[#121e19]' : 'text-[#404942]'}`}>
-                    {stop.name}
-                  </span>
-                  {stop.isBoarding && (
-                    <span className="px-1.5 py-0.5 rounded bg-[#004327] text-white text-[9px] font-bold uppercase tracking-wider">
-                      BOARD HERE
-                    </span>
-                  )}
-                  {stop.isAlighting && (
-                    <span className="px-1.5 py-0.5 rounded bg-[#121e19] text-white text-[9px] font-bold uppercase tracking-wider">
-                      ALIGHT HERE
-                    </span>
-                  )}
-                </div>
-                <span className="text-[11px] text-[#707971]">
-                  {stop.dist} {stop.note ? `• ${stop.note}` : ''}
-                </span>
-              </div>
-
-              {/* Stop Scheduled Time */}
-              <span className="text-xs font-semibold text-[#121e19] shrink-0">
-                {stop.time}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-[10px] text-[#404942]">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-[#145C3A]" />
+                <span className="hidden sm:inline">{lang === 'hi' ? 'कम' : 'Low (<60%)'}</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-[#E0A51A]" />
+                <span className="hidden sm:inline">{lang === 'hi' ? 'मध्यम' : 'Mod (60-85%)'}</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-[#C64B4B]" />
+                <span className="hidden sm:inline">{lang === 'hi' ? 'अधिक' : 'High (>85%)'}</span>
               </span>
             </div>
-          ))}
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{lang === 'hi' ? 'जीपीएस सक्रिय' : 'Real-time GPS active'}</span>
+            </div>
+          </div>
+        </div>
 
-          {/* Toggle remaining stops */}
-          {remainingCount > 0 && !showAll && (
-            <button
-              type="button"
-              onClick={() => setShowAll(true)}
-              className="text-xs text-[#136c46] hover:text-[#004327] font-semibold py-2 text-left flex items-center gap-1 cursor-pointer pl-2"
-            >
-              <span>+ {remainingCount} more stops · Show complete corridor schedule</span>
-              <ChevronDown className="w-4 h-4" />
-            </button>
-          )}
+        {/* Internal Scrollable Stops Viewport - Fills entire remaining vertical space */}
+        <div
+          id="stops-scroll-viewport"
+          ref={scrollViewportRef}
+          className="flex-1 overflow-y-auto min-h-0 pr-2 pt-3 space-y-0 scroll-smooth custom-scrollbar"
+        >
+          {stops.map((stop, index) => {
+            const isFirst = index === 0;
+            const isLast = index === stops.length - 1;
+            const segmentColor = !isLast ? getSegmentColorClass(stop.occupancyToNextStop) : '';
+            const nodeColorClass = getStopCrowdColorClass(stop, index, stops.length, zoneBreakdown, crowdCategory);
 
-          {showAll && (
-            <button
-              type="button"
-              onClick={() => setShowAll(false)}
-              className="text-xs text-[#136c46] hover:text-[#004327] font-semibold py-2 text-left flex items-center gap-1 cursor-pointer pl-2"
-            >
-              <span>Show fewer stops</span>
-              <ChevronUp className="w-4 h-4" />
-            </button>
-          )}
+            return (
+              <div key={stop.id || index} className="flex items-start group">
+                {/* Spine Column with Dots and Crowd-Colored Segments */}
+                <div className="flex flex-col items-center mr-3 w-4 flex-shrink-0">
+                  {/* Node Dot (Filled based on expected crowd at that particular stop) */}
+                  {isFirst ? (
+                    <div className={`w-3.5 h-3.5 rounded-full border-[3px] ${nodeColorClass === 'bg-[#C64B4B]' ? 'border-[#C64B4B]' : nodeColorClass === 'bg-[#E0A51A]' ? 'border-[#E0A51A]' : 'border-[#145C3A]'} bg-white ring-2 ring-white flex-shrink-0 z-10`} />
+                  ) : isLast ? (
+                    <div className={`w-3.5 h-3.5 rounded-full ${nodeColorClass} ring-4 ring-emerald-100 ring-offset-1 flex-shrink-0 z-10`} />
+                  ) : (
+                    <div className={`w-2.5 h-2.5 my-0.5 rounded-full ${nodeColorClass} ring-2 ring-white flex-shrink-0 z-10 transition-colors duration-200`} />
+                  )}
+
+                  {/* Dynamic Occupancy Colored Connecting Line (rendered except on final stop) */}
+                  {!isLast && (
+                    <div className={`w-[3px] h-8 ${segmentColor} rounded-full my-0.5 transition-colors duration-200`} />
+                  )}
+                </div>
+
+                {/* Stop Info Details */}
+                <div className={`pt-0 ${isLast ? '' : 'pb-3'} flex-1 flex items-baseline justify-between min-w-0`}>
+                  <div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-xs ${isFirst || isLast ? 'font-bold text-gray-900' : 'font-medium text-gray-800'}`}>
+                        {stop.name}
+                      </span>
+                      {isFirst && (
+                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 tracking-wider">
+                          {lang === 'hi' ? 'बोर्ड करें' : 'BOARD HERE'}
+                        </span>
+                      )}
+                      {isLast && (
+                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200 tracking-wider">
+                          {lang === 'hi' ? 'उतरें' : 'ALIGHT'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-gray-500 mt-0.5">
+                      {stop.distanceKm}
+                    </div>
+                  </div>
+                  <span className={`text-xs ${isFirst || isLast ? 'font-semibold text-gray-700' : 'text-gray-600'} shrink-0 ml-2`}>
+                    {stop.time}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Bottom Pinned Control Footer (Replaces '+17 more stops') */}
+        <div className="flex-shrink-0 mt-auto pt-3 border-t border-emerald-100/70 bg-emerald-50/50 -mx-5 -mb-5 px-5 py-3 rounded-b-2xl flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-medium text-emerald-900">
+            <svg className="w-3.5 h-3.5 text-emerald-700 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+            <span>
+              {lang === 'hi' ? `सभी ${stops.length} स्टॉप देखने के लिए स्क्रॉल करें` : `Scroll to preview all ${stops.length} stops`}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={toggleScrollTopEnd}
+            className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 bg-white px-2.5 py-1 rounded-md border border-emerald-200 shadow-xs flex items-center gap-1 transition-colors cursor-pointer"
+          >
+            <span>{lang === 'hi' ? 'ऊपर / नीचे' : 'Toggle top / end'}</span>
+            <span className="text-[10px]">↕</span>
+          </button>
         </div>
       </div>
     </div>
