@@ -10,7 +10,7 @@ export default function CorridorHeatStrip({ zones, title = "8-Zone Corridor Heat
         zone_id: idx,
         mean_load: calcLoad,
         rci: existing.rci !== undefined ? existing.rci : (calcLoad ? Math.min(100, calcLoad * 1.67) : 25),
-        label: existing.crowd_category || (calcLoad > 35 ? 'Crowded' : calcLoad > 20 ? 'Standing Room' : 'Seats Available'),
+        label: existing.crowd_category || (calcLoad > 35 ? 'Very crowded' : calcLoad > 20 ? 'Fairly crowded' : 'Not crowded'),
       };
     }
     // Default placeholder
@@ -18,7 +18,7 @@ export default function CorridorHeatStrip({ zones, title = "8-Zone Corridor Heat
       zone_id: idx,
       mean_load: 12,
       rci: 20,
-      label: 'Seats Available',
+      label: 'Not crowded',
     };
   });
 
@@ -64,13 +64,13 @@ export default function CorridorHeatStrip({ zones, title = "8-Zone Corridor Heat
 
       <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded bg-emerald-500"></span> Seats Available (&lt;50)
+          <span className="w-2.5 h-2.5 rounded bg-emerald-500"></span> Not crowded (&lt;50)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded bg-amber-400"></span> Standing Room (50–85)
+          <span className="w-2.5 h-2.5 rounded bg-amber-400"></span> Fairly crowded (50–85)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded bg-red-500"></span> Crowded (&gt;85)
+          <span className="w-2.5 h-2.5 rounded bg-red-500"></span> Very crowded (&gt;85)
         </span>
       </div>
     </div>

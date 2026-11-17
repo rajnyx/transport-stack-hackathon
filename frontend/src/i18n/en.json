@@ -2,7 +2,7 @@
   "app": {
     "name": "CrowdWise",
     "tagline": "Delhi bus journey planner",
-    "dataLine": "Based on 2.56M official October 2026 ticketing records",
+    "dataLine": "Based on 2,559,899 official October 2026 ticketing records",
     "historicalNote": "Based on past ticket data for this time of day",
     "language": "Language",
     "en": "English",

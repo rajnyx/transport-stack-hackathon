@@ -95,7 +95,6 @@ export default function CompareTable({
       render: (opt) => (
         <CrowdIndicator
           category={opt.crowding?.category || opt.crowding_category || opt.crowd_category || 'unknown'}
-          occupancyPercent={opt.occupancy_percent || (opt.rci ? Math.round(opt.rci) : null)}
           size="sm"
         />
       ),
@@ -158,17 +157,17 @@ export default function CompareTable({
                     key={opt.trip_id || idx}
                     onClick={() => onSelectOption && onSelectOption(idx)}
                     className={`py-2.5 px-3 text-center cursor-pointer min-w-[120px] transition-colors ${
-                      isSelected ? 'bg-teal/10 font-bold text-teal' : 'hover:bg-surface-bg text-navy'
+                      isSelected ? 'bg-[#004327]/10 font-bold text-[#004327]' : 'hover:bg-surface-bg text-[#004327]'
                     }`}
                   >
                     <div className="flex flex-col items-center gap-1.5">
                       {isFastest && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-navy text-white leading-none">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#004327] text-white leading-none">
                           {lang === 'hi' ? 'सबसे तेज़' : 'Fastest'}
                         </span>
                       )}
                       {isLeastCrowded && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal text-white leading-none">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#136c46] text-white leading-none">
                           {lang === 'hi' ? 'कम भीड़' : 'Least crowded'}
                         </span>
                       )}

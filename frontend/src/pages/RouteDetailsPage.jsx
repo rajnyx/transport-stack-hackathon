@@ -107,9 +107,9 @@ export default function RouteDetailsPage() {
     const peakCrowd = maxHourObj?.category || 'Fairly crowded';
 
     if (lang === 'hi') {
-      return `यह रूट मुख्य रूप से ${peakHour} के आसपास सबसे व्यस्त रहता है (औसत भार: ${maxHourObj.mean_load} यात्री)।`;
+      return `यह रूट मुख्य रूप से ${peakHour} के आसपास सबसे व्यस्त रहता है (औसत लोड इंडेक्स: ${maxHourObj.mean_load})।`;
     }
-    return `Peak crowding occurs around ${peakHour} with an estimated average load of ${maxHourObj.mean_load} passengers.`;
+    return `Peak crowding occurs around ${peakHour} with an estimated average load index of ${maxHourObj.mean_load}.`;
   }, [chartData, lang]);
 
   const stops = routeInfo?.stops || [];
@@ -303,7 +303,7 @@ export default function RouteDetailsPage() {
                   <YAxis
                     tick={{ fontSize: 10, fill: '#5F6B73' }}
                     label={{
-                      value: lang === 'hi' ? 'यात्री भार (यात्री/बस)' : 'Load (passengers/bus)',
+                      value: lang === 'hi' ? 'सापेक्ष लोड इंडेक्स' : 'Relative load index',
                       angle: -90,
                       position: 'insideLeft',
                       offset: 25,
@@ -318,10 +318,10 @@ export default function RouteDetailsPage() {
                           <div className="bg-white border border-transit-border p-2.5 rounded-[4px] shadow-sm text-xs space-y-1">
                             <p className="font-bold text-navy">{d.hour}</p>
                             <p className="text-navy font-semibold">
-                              {lang === 'hi' ? 'कार्यदिवस भार:' : 'Weekday load:'} {d.mean_load} {lang === 'hi' ? 'यात्री' : 'passengers'}
+                              {lang === 'hi' ? 'कार्यदिवस लोड:' : 'Weekday load:'} {d.mean_load}
                             </p>
                             <p className="text-teal font-semibold">
-                              {lang === 'hi' ? 'सप्ताहांत भार:' : 'Weekend load:'} {d.weekend_load} {lang === 'hi' ? 'यात्री' : 'passengers'}
+                              {lang === 'hi' ? 'सप्ताहांत लोड:' : 'Weekend load:'} {d.weekend_load}
                             </p>
                             <p className="text-transit-textMuted text-[11px]">
                               {lang === 'hi' ? 'भीड़ श्रेणी:' : 'Category:'} {d.category}

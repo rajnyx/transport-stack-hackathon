@@ -1,9 +1,10 @@
 import React from 'react';
-import { ArrowRight, HelpCircle, ChevronRight, BarChart2, Database } from 'lucide-react';
+import { ArrowRight, HelpCircle, ChevronRight, BarChart2, Database, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import RouteBadge from './RouteBadge';
 import CrowdIndicator from './CrowdIndicator';
 import { useTranslation } from '../../i18n/LanguageContext';
+import { formatTime12h, formatConfidence, canonicalCrowdLevel } from '../../utils/formatters';
 
 export default function TransitRow({
   option,
@@ -11,7 +12,6 @@ export default function TransitRow({
   isSelected = false,
   preference = 'fastest',
   onSelect,
-  onOpenWhyModal,
   className = '',
 }) {
   const { lang } = useTranslation();
@@ -35,23 +35,35 @@ export default function TransitRow({
   );
 
   const routeNum = option.route_short_name || option.route_id || '73UP';
-  const depTime = option.scheduled_departure ? option.scheduled_departure.slice(0, 5) : '6:00 pm';
+  const rawDep = option.scheduled_departure ? option.scheduled_departure.slice(0, 5) : '18:00';
+  const depTime = formatTime12h(rawDep);
   const distKm = option.distance_km ?? option.timing?.distance_km ?? 13.4;
   const stopsCount = option.stops_count ?? option.stops?.length ?? 25;
 
-  const crowdOrigin =
-    option.crowding?.category ||
-    option.crowding_category ||
-    option.crowd_category ||
-    (routeNum === '850DOWN' ? 'low' : routeNum === '764' ? 'moderate' : 'high');
+  const isThinData = option.confidence === 'none' || option.thin_data;
 
-  const peakCrowd =
-    option.peak_crowd_category ||
-    option.crowding?.crowding_label ||
-    crowdOrigin;
+  const crowdOrigin = isThinData
+    ? 'unknown'
+    : canonicalCrowdLevel(
+        option.crowding?.category ||
+        option.crowding_category ||
+        option.crowd_category
+      );
+
+  const peakCrowd = isThinData
+    ? 'unknown'
+    : canonicalCrowdLevel(
+        option.peak_crowd_category ||
+        option.crowding?.crowding_label ||
+        crowdOrigin
+      );
 
   const prefTag =
-    routeNum === '850DOWN' ? 'Least crowded' : routeNum === '764' ? 'Balanced' : null;
+    preference === 'least_crowded'
+      ? (lang === 'hi' ? 'कम भीड़ के लिए अनुशंसित' : 'Recommended for least crowded')
+      : preference === 'balanced'
+      ? (lang === 'hi' ? 'संतुलित विकल्प' : 'Recommended for balanced')
+      : (lang === 'hi' ? 'सबसे तेज़ विकल्प' : 'Recommended for fastest');
 
   // Render Expanded Card if Selected (matching Stitch Active Option Card)
   if (isSelected) {
@@ -60,23 +72,18 @@ export default function TransitRow({
         onClick={onSelect}
         className={`bg-white border-2 border-[#145c3a] rounded-xl shadow-md overflow-hidden select-none cursor-pointer transition-all ${className}`}
       >
-        {/* Top Header inside card: "Recommended for fastest" */}
+        {/* Top Header inside card */}
         <div className="bg-[#e9f7ee] border-b border-[#d8e6dd] px-4 py-2 flex items-center justify-between text-xs">
           <span className="font-bold text-[#145c3a]">
-            {preference === 'least_crowded'
-              ? (lang === 'hi' ? 'कम भीड़ के लिए अनुशंसित' : 'Recommended for least crowded')
-              : preference === 'balanced'
-              ? (lang === 'hi' ? 'संतुलित यात्रा के लिए अनुशंसित' : 'Recommended for balanced route')
-              : (lang === 'hi' ? 'सबसे तेज़ यात्रा (अनुशंसित)' : 'Recommended for fastest')}
+            {prefTag}
           </span>
         </div>
 
-        {/* Card Body */}
         <div className="p-4 space-y-3.5">
           {/* Row 1: Badge, Leaves time, Distance & Duration */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-2.5">
-              <span className="bg-[#004327] text-white font-mono font-bold text-xs px-2.5 py-1 rounded-md shadow-xs">
+              <span className="bg-[#004327] text-white font-bold text-xs px-2.5 py-1 rounded-md shadow-xs">
                 {routeNum}
               </span>
               <div>
@@ -94,20 +101,28 @@ export default function TransitRow({
                 {totalMin}
               </div>
               <div className="text-[10px] font-bold text-[#707971] uppercase tracking-wider mt-0.5">
-                MIN
+                MIN TOTAL
               </div>
             </div>
           </div>
 
-          {/* Row 2: Crowding indicators */}
-          <div className="space-y-1.5 text-xs pt-1">
+          {/* Row 2: At your stop vs Busiest stretch */}
+          <div className="grid grid-cols-2 gap-2 p-2.5 rounded-lg bg-[#e9f7ee]/50 border border-[#d8e6dd]/60">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-medium text-[#404942] w-20">At your stop</span>
-              <CrowdIndicator category={crowdOrigin} size="sm" />
+              {isThinData ? (
+                <span className="text-xs text-[#707971] bg-[#d8e6dd] px-1.5 py-0.5 rounded">Not enough data</span>
+              ) : (
+                <CrowdIndicator category={crowdOrigin} size="sm" />
+              )}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-medium text-[#404942] w-20">Busiest part</span>
-              <CrowdIndicator category={peakCrowd} size="sm" />
+              {isThinData ? (
+                <span className="text-xs text-[#707971] bg-[#d8e6dd] px-1.5 py-0.5 rounded">Not enough data</span>
+              ) : (
+                <CrowdIndicator category={peakCrowd} size="sm" />
+              )}
             </div>
           </div>
 
@@ -127,11 +142,11 @@ export default function TransitRow({
             </div>
           </div>
 
-          {/* Row 4: Data Confidence & Corridor */}
+          {/* Row 4: Data Confidence */}
           <div className="grid grid-cols-2 gap-2 text-[10px] text-[#404942] pt-2 border-t border-[#d8e6dd]">
             <div className="flex items-center gap-1.5">
               <Database className="w-3 h-3 text-[#136c46]" />
-              <span>High historical confidence</span>
+              <span>{formatConfidence(option.confidence)}</span>
             </div>
             <div className="text-right">
               <span>Corridor: {stopsCount} stops · {distKm} km</span>
@@ -147,6 +162,7 @@ export default function TransitRow({
             >
               <BarChart2 className="w-3.5 h-3.5" />
               <span>View 24h route profile</span>
+              <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
@@ -164,7 +180,7 @@ export default function TransitRow({
         {/* Left: Badge, details, crowd */}
         <div className="space-y-1.5 flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="bg-[#27332d] text-white font-mono font-bold text-xs px-2.5 py-0.5 rounded">
+            <span className="bg-[#27332d] text-white font-bold text-xs px-2.5 py-0.5 rounded">
               {routeNum}
             </span>
             <span className="text-xs font-bold text-[#121e19]">
@@ -178,25 +194,20 @@ export default function TransitRow({
 
           <div className="flex items-center gap-2 pt-0.5">
             <span className="text-[11px] text-[#707971]">At your stop:</span>
-            <CrowdIndicator category={crowdOrigin} size="sm" />
+            {isThinData ? (
+              <span className="text-xs text-[#707971] bg-[#d8e6dd] px-1.5 py-0.5 rounded">Not enough data</span>
+            ) : (
+              <CrowdIndicator category={crowdOrigin} size="sm" />
+            )}
           </div>
         </div>
 
-        {/* Right: Duration + Preference Pill */}
+        {/* Right: Duration */}
         <div className="text-right shrink-0 flex flex-col items-end gap-1">
           <div className="flex items-baseline gap-1">
             <span className="text-2xl font-black text-[#121e19] tabular-nums leading-none">{totalMin}</span>
             <span className="text-[10px] font-bold text-[#707971] uppercase">MIN</span>
           </div>
-          {prefTag && (
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-              prefTag === 'Least crowded'
-                ? 'bg-[#a2f4c3] text-[#005232]'
-                : 'bg-[#e3f1e8] text-[#404942]'
-            }`}>
-              {prefTag}
-            </span>
-          )}
         </div>
       </div>
     </div>

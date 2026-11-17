@@ -2,35 +2,12 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import CrowdIndicator from './primitives/CrowdIndicator';
 import { useTranslation } from '../i18n/LanguageContext';
-
-/**
- * JourneyItinerary — Matches Stitch Journey Results Right Column:
- * - Route header: "73UP", "6:00 pm – 6:40 pm • 40 min", "13.4 km route • 25 stops • Scheduled service"
- * - Crowd status: "Crowd at 6:00 PM: 👥 Very crowded"
- * - "CROWD ALONG THE ROUTE" segmented corridor heat strip:
- *   - 25% Error (#c64b4b) - Anand Vihar to Preet Vihar: High
- *   - 30% Dark Red (#ba1a1a) - Preet Vihar to Laxmi Nagar: Very High
- *   - 20% Soft Red (#ffdad6) - ITO Bridge Corridor: High
- *   - 15% Mint Grey (#d8e6dd) - Mandi House: Moderate
- *   - 10% Secondary Green (#25865a) - Shivaji Stadium: Low
- * - Origin & Destination labels
- * - "JOURNEY STOPS AND SCHEDULE" vertical stop-by-stop timeline with boarding badge
- */
-const formatTime12h = (timeStr) => {
-  if (!timeStr) return '6:00 pm';
-  const parts = timeStr.split(':');
-  let h = parseInt(parts[0], 10);
-  if (isNaN(h)) return timeStr;
-  const m = parts[1] || '00';
-  const ampm = h >= 12 ? 'pm' : 'am';
-  h = h % 12 || 12;
-  return `${h}:${m} ${ampm}`;
-};
+import { formatTime12h } from '../utils/formatters';
 
 const addMinutes = (timeStr, mins) => {
   const parts = (timeStr || '18:00').split(':');
   let totalMinutes = parseInt(parts[0] || '18', 10) * 60 + parseInt(parts[1] || '00', 10) + mins;
-  totalMinutes = (totalMinutes % 1440 + 1440) % 1440;
+  totalMinutes = ((totalMinutes % 1440) + 1440) % 1440;
   const h = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
   const m = String(totalMinutes % 60).padStart(2, '0');
   return `${h}:${m}`;
@@ -67,49 +44,72 @@ export default function JourneyItinerary({
     option.crowd_category ||
     'high';
 
-  // Realistic corridor stops with timing and distances calculated from user departure time
-  const fallbackStops = [
-    { name: 'Anand Vihar ISBT', dist: '0.0 km', time: depTime, isBoarding: true, note: 'Platform 4 • Terminal Bay' },
-    { name: 'Anand Vihar ISBT Main Road', dist: '+0.2 km', time: formatTime12h(addMinutes(depTime24, 1)) },
-    { name: 'EDM Mall / Gazipur Depot', dist: '+0.6 km', time: formatTime12h(addMinutes(depTime24, 3)) },
-    { name: 'Hasanpur Village', dist: '+1.0 km', time: formatTime12h(addMinutes(depTime24, 5)) },
-    { name: 'Hasanpur Depot', dist: '+1.6 km', time: formatTime12h(addMinutes(depTime24, 8)) },
-    { name: 'Karkardooma Crossing', dist: '+3.2 km', time: formatTime12h(addMinutes(depTime24, 11)) },
-    { name: 'New Rajdhani Enclave / Preet Vihar Metro', dist: '+3.4 km', time: formatTime12h(addMinutes(depTime24, 13)) },
-    { name: 'Swasthya Vihar / Preet Vihar', dist: '+3.9 km', time: formatTime12h(addMinutes(depTime24, 15)) },
-    { name: 'Nirman Vihar', dist: '+4.4 km', time: formatTime12h(addMinutes(depTime24, 17)) },
-    { name: 'Shakarpur Crossing', dist: '+4.7 km', time: formatTime12h(addMinutes(depTime24, 19)) },
-    { name: 'Laxmi Nagar Metro Station', dist: '+5.3 km', time: formatTime12h(addMinutes(depTime24, 21)) },
-    { name: 'Rainy Well / Shakarpur', dist: '+6.1 km', time: formatTime12h(addMinutes(depTime24, 23)) },
-    { name: 'Delhi Secretariat / ITO Bridge', dist: '+7.4 km', time: formatTime12h(addMinutes(depTime24, 26)) },
-    { name: 'ITO Vikas Minar', dist: '+8.2 km', time: formatTime12h(addMinutes(depTime24, 28)) },
-    { name: 'Tilak Bridge', dist: '+9.0 km', time: formatTime12h(addMinutes(depTime24, 30)) },
-    { name: 'Mandi House', dist: '+10.1 km', time: formatTime12h(addMinutes(depTime24, 32)) },
-    { name: 'Barakhamba Road Metro', dist: '+11.2 km', time: formatTime12h(addMinutes(depTime24, 35)) },
-    { name: 'Statesman House', dist: '+12.0 km', time: formatTime12h(addMinutes(depTime24, 37)) },
-    { name: 'Shivaji Stadium Terminal', dist: '+13.4 km', time: arrTime, isAlighting: true, note: 'Alighting Platform' },
-  ];
+  // Dynamic segments along the corridor using only the 3 canonical crowd colors
+  const zoneBreakdown = option.crowding?.zone_breakdown || option.zone_forecasts || [];
 
-  const stops = option.stops && option.stops.length > 5
+  const corridorSegments = zoneBreakdown.length > 0
+    ? zoneBreakdown.map((z) => {
+        const cat = (z.category || z.crowd_level || '').toLowerCase();
+        let bg = '#94a3b8'; // grey unknown
+        if (cat.includes('low') || cat.includes('not')) bg = '#10b981';
+        else if (cat.includes('mod') || cat.includes('fairly')) bg = '#f59e0b';
+        else if (cat.includes('high') || cat.includes('very')) bg = '#ef4444';
+        return {
+          name: z.zone_name || `Zone ${z.zone_id}`,
+          color: bg,
+          level: cat.includes('low') ? 'Not crowded' : cat.includes('mod') ? 'Fairly crowded' : cat.includes('high') ? 'Very crowded' : 'Not enough data',
+          width: `${Math.max(15, Math.floor(100 / zoneBreakdown.length))}%`,
+        };
+      })
+    : [
+        // Default 3 corridor sections colored by the 3 canonical colors
+        {
+          name: 'Origin corridor',
+          color: crowdCategory === 'low' ? '#10b981' : crowdCategory === 'moderate' ? '#f59e0b' : '#ef4444',
+          level: crowdCategory === 'low' ? 'Not crowded' : crowdCategory === 'moderate' ? 'Fairly crowded' : 'Very crowded',
+          width: '35%',
+        },
+        {
+          name: 'Mid-route corridor',
+          color: crowdCategory === 'high' ? '#ef4444' : '#f59e0b',
+          level: crowdCategory === 'high' ? 'Very crowded' : 'Fairly crowded',
+          width: '35%',
+        },
+        {
+          name: 'Destination stretch',
+          color: '#10b981',
+          level: 'Not crowded',
+          width: '30%',
+        },
+      ];
+
+  const stops = option.stops && option.stops.length > 0
     ? option.stops.map((s, idx) => ({
         name: s.stop_name || `Stop ${idx + 1}`,
         dist: idx === 0 ? '0.0 km' : `+${(idx * 0.5).toFixed(1)} km`,
         time: s.arrival_time_12h || (idx === 0 ? depTime : idx === option.stops.length - 1 ? arrTime : ''),
         isBoarding: idx === 0,
         isAlighting: idx === option.stops.length - 1,
-        note: idx === 0 ? 'BOARD HERE' : idx === option.stops.length - 1 ? 'ALIGHT HERE' : null,
+        // No duplicate "BOARD HERE" in note
+        note: null,
       }))
-    : fallbackStops;
+    : [
+        { name: 'Boarding Terminal', dist: '0.0 km', time: depTime, isBoarding: true, note: null },
+        { name: 'En-route Stop 1', dist: '+2.5 km', time: formatTime12h(addMinutes(depTime24, 8)), isBoarding: false, note: null },
+        { name: 'En-route Stop 2', dist: '+5.0 km', time: formatTime12h(addMinutes(depTime24, 16)), isBoarding: false, note: null },
+        { name: 'En-route Stop 3', dist: '+8.2 km', time: formatTime12h(addMinutes(depTime24, 25)), isBoarding: false, note: null },
+        { name: 'Alighting Terminal', dist: `+${distKm} km`, time: arrTime, isAlighting: true, note: null },
+      ];
 
   const visibleStops = showAll ? stops : stops.slice(0, 8);
   const remainingCount = stops.length - 8;
 
   return (
     <div className={`bg-white border border-[#d8e6dd] rounded-xl p-5 shadow-sm space-y-5 ${className}`}>
-      {/* 1. Route Summary Header matching Stitch */}
+      {/* 1. Route Summary Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#d8e6dd] pb-4">
         <div className="flex items-center gap-3">
-          <span className="px-2.5 py-1 rounded bg-[#004327] text-white font-mono font-bold text-sm tracking-wide">
+          <span className="px-2.5 py-1 rounded bg-[#004327] text-white font-bold text-sm tracking-wide">
             {routeNum}
           </span>
           <div>
@@ -133,25 +133,45 @@ export default function JourneyItinerary({
       </div>
 
       {/* 2. Segmented Crowd Density Along Corridor */}
-      <div className="flex flex-col gap-2 bg-[#e9f7ee]/60 p-3.5 rounded-xl border border-[#d8e6dd]/60">
+      <div className="flex flex-col gap-2.5 bg-[#e9f7ee]/60 p-3.5 rounded-xl border border-[#d8e6dd]">
         <div className="flex justify-between text-xs text-[#121e19] font-bold">
           <span className="uppercase tracking-wider text-[11px]">CROWD ALONG THE ROUTE</span>
-          <span className="text-[#707971] font-normal text-[11px]">Peak crowding across Yamuna crossing</span>
+          <span className="text-[#707971] font-normal text-[11px]">Estimated zone demand</span>
         </div>
 
-        {/* Segmented Color Track */}
-        <div className="w-full h-3 rounded flex overflow-hidden gap-0.5 bg-[#d8e6dd]">
-          <div className="h-full bg-[#c64b4b] rounded-l" style={{ width: '25%' }} title="Anand Vihar to Preet Vihar: High" />
-          <div className="h-full bg-[#ba1a1a]" style={{ width: '30%' }} title="Preet Vihar to Laxmi Nagar: Very High" />
-          <div className="h-full bg-[#ffdad6]" style={{ width: '20%' }} title="ITO Bridge Corridor: High" />
-          <div className="h-full bg-[#d8e6dd]" style={{ width: '15%' }} title="Mandi House: Moderate" />
-          <div className="h-full bg-[#25865a] rounded-r" style={{ width: '10%' }} title="Shivaji Stadium: Low" />
+        {/* Segmented Color Track (3 canonical crowd colors + grey for unknown) */}
+        <div className="w-full h-3 rounded flex overflow-hidden gap-0.5 bg-[#e2e8f0]">
+          {corridorSegments.map((seg, idx) => (
+            <div
+              key={idx}
+              className="h-full first:rounded-l last:rounded-r transition-all"
+              style={{ width: seg.width, backgroundColor: seg.color }}
+              title={`${seg.name}: ${seg.level}`}
+            />
+          ))}
         </div>
 
-        <div className="flex justify-between text-[11px] text-[#404942]">
-          <span>Anand Vihar ISBT</span>
-          <span className="hidden sm:inline">ITO Bridge</span>
-          <span>Shivaji Stadium</span>
+        {/* Small Legend below corridor track */}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-[#404942] pt-1">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-[#10b981]" />
+              <span>Not crowded</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-[#f59e0b]" />
+              <span>Fairly crowded</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-[#ef4444]" />
+              <span>Very crowded</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-[#94a3b8]" />
+              <span>Not enough data</span>
+            </span>
+          </div>
+          <span className="text-[#707971]">Relative to typical corridor loads</span>
         </div>
       </div>
 
@@ -177,7 +197,7 @@ export default function JourneyItinerary({
                     ? 'bg-[#004327]'
                     : stop.isAlighting
                     ? 'bg-[#121e19]'
-                    : 'bg-[#bfc9c0]'
+                    : 'bg-[#94a3b8]'
                 }`}
               >
                 <div className={`rounded-full ${stop.isBoarding || stop.isAlighting ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white'}`} />
@@ -190,12 +210,12 @@ export default function JourneyItinerary({
                     {stop.name}
                   </span>
                   {stop.isBoarding && (
-                    <span className="px-1.5 py-0.2 rounded bg-[#004327] text-white text-[9px] font-bold uppercase tracking-wider">
+                    <span className="px-1.5 py-0.5 rounded bg-[#004327] text-white text-[9px] font-bold uppercase tracking-wider">
                       BOARD HERE
                     </span>
                   )}
                   {stop.isAlighting && (
-                    <span className="px-1.5 py-0.2 rounded bg-[#121e19] text-white text-[9px] font-bold uppercase tracking-wider">
+                    <span className="px-1.5 py-0.5 rounded bg-[#121e19] text-white text-[9px] font-bold uppercase tracking-wider">
                       ALIGHT HERE
                     </span>
                   )}

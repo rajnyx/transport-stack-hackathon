@@ -74,7 +74,7 @@ export default function WhyThisRouteModal({ option, fastestOption, preference = 
               : preference === 'least_crowded'
               ? (lang === 'hi'
                 ? 'यह विकल्प कम भीड़ को प्राथमिकता देता है, भले ही इसमें कुछ मिनट अधिक लगें।'
-                : 'This route avoids the most crowded corridors, trading a few extra minutes for higher seating chances.')
+                : 'This route avoids the most crowded corridors, trading a few extra minutes for lower crowdedness.')
               : (lang === 'hi'
                 ? 'संतुलित विकल्प यात्रा के समय और भीड़ दोनों को ध्यान में रखता है ताकि आरामदायक और तेज़ सफर मिल सके।'
                 : 'Balanced ranking weighs travel time against bus crowdedness, aiming for comfort without adding unnecessary travel time.')}

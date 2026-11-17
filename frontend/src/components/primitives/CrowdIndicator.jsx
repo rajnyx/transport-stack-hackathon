@@ -52,7 +52,7 @@ export default function CrowdIndicator({
       count: 3,
       color: 'text-red-600',
       labelEn: 'Very crowded',
-      labelHi: 'बहुत भीड़',
+      labelHi: 'ज़्यादा भीड़',
     },
     unknown: {
       count: 0,

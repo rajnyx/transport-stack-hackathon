@@ -15,15 +15,15 @@ import { Lightbulb } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
 /**
- * RouteCrowdingChart — Matches Stitch Journey Results Chart:
+ * RouteCrowdingChart — Matches Google Stitch Journey Results Chart:
  * - Title: "Typical crowd on route [Route] by time of day"
  * - Subtitle: "Based on past ticket data. Weekday vs weekend comparison."
  * - Three background horizontal capacity zones: High (red tint), Moderate (amber tint), Low (green tint)
- * - Y-axis labels: High, Moderate, Low
+ * - Y-axis labels: High, Moderate, Low (with margin so Moderate never clips - Phase 3)
  * - X-axis: 6 am, 9 am, 12 pm, 3 pm, 6 pm, 9 pm
  * - Deep green solid weekday curve with gradient fill (#004327), Dotted weekend curve (#707971)
  * - Selected bus line with tag: "Your bus: 6:00 pm"
- * - Dynamic Proactive Recommendation Banner: "Leave 30 minutes later..."
+ * - Proactive Recommendation Banner without seat claims (Phase 2)
  */
 export default function RouteCrowdingChart({
   routeNumber = '73UP',
@@ -96,7 +96,7 @@ export default function RouteCrowdingChart({
       {/* Chart with 3 colored capacity zones */}
       <div className="h-44 w-full relative pt-1 rounded-lg overflow-hidden bg-[#e9f7ee]/30 p-2">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 20, right: 10, left: -25, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 20, right: 10, left: 16, bottom: 0 }}>
             <defs>
               <linearGradient id="crowdStitchGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#145c3a" stopOpacity={0.35} />
@@ -124,6 +124,7 @@ export default function RouteCrowdingChart({
               tickFormatter={(val) => (val >= 70 ? 'High' : val >= 35 ? 'Moderate' : 'Low')}
               tick={{ fontSize: 9.5, fill: '#707971' }}
               axisLine={false}
+              width={42}
             />
 
             {/* Vertical Reference Line for Selected Departure Time with Pin Tag */}
@@ -195,7 +196,7 @@ export default function RouteCrowdingChart({
         </div>
       </div>
 
-      {/* Dynamic Proactive Recommendation Banner matching Stitch */}
+      {/* Dynamic Proactive Recommendation Banner (Phase 2 honest wording without seats) */}
       <div className="bg-[#e3f1e8] border border-[#d8e6dd] rounded-lg p-3 text-xs text-[#121e19] flex items-start gap-2.5">
         <Lightbulb className="w-5 h-5 text-[#136c46] shrink-0 mt-0.5" />
         <div className="flex flex-col gap-0.5">
@@ -204,8 +205,8 @@ export default function RouteCrowdingChart({
           </span>
           <p className="text-[11px] text-[#404942] leading-relaxed">
             {lang === 'hi'
-              ? 'शाम 6:30 बजे भीड़ बहुत अधिक से मध्यम स्तर पर आ जाती है और निर्माण विहार के बाद सीट मिलने की संभावना बढ़ जाती है। यात्रा में केवल 4 मिनट अधिक समय लगता है।'
-              : 'At 6:30 pm, the crowd drops from very crowded to fairly crowded with seats likely after Nirman Vihar. The trip takes just 4 min longer.'}
+              ? '30 मिनट बाद प्रस्थान करें: आपके स्टॉप पर भीड़ बहुत अधिक से मध्यम स्तर पर आ जाती है। यात्रा में लगभग 4 मिनट अधिक समय लगता है।'
+              : 'Leave 30 minutes later: crowd drops from Very crowded to Fairly crowded at your stop. The trip takes about 4 min longer.'}
           </p>
         </div>
       </div>

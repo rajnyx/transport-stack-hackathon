@@ -85,9 +85,18 @@ export default function ResultsPage() {
 
   // If API returns options, dynamically map their scheduled departures around user's chosen time
   const options = rawOptions.length > 0 ? rawOptions.map((opt, idx) => {
-    const dep = opt.scheduled_departure ? opt.scheduled_departure.slice(0, 5) : addMinutes(departureTime, idx * 5);
+    let dep;
+    if (opt.scheduled_departure && opt.scheduled_departure.slice(0, 5) >= departureTime) {
+      dep = opt.scheduled_departure.slice(0, 5);
+    } else if (opt.wait_time_min !== undefined && opt.wait_time_min !== null) {
+      dep = addMinutes(departureTime, Math.round(opt.wait_time_min));
+    } else {
+      dep = addMinutes(departureTime, idx * 5);
+    }
     const dur = Math.round(opt.total_duration_minutes ?? opt.total_time_min ?? 40);
-    const arr = opt.scheduled_arrival ? opt.scheduled_arrival.slice(0, 5) : addMinutes(dep, dur);
+    const arr = opt.scheduled_arrival && opt.scheduled_arrival.slice(0, 5) > dep
+      ? opt.scheduled_arrival.slice(0, 5)
+      : addMinutes(dep, dur);
     return {
       ...opt,
       scheduled_departure: dep,
@@ -100,11 +109,11 @@ export default function ResultsPage() {
       route_id: '73UP',
       route_short_name: '73UP',
       route_long_name: 'Anand Vihar ISBT to Shivaji Stadium Terminal',
-      scheduled_departure: departureTime,
-      scheduled_arrival: addMinutes(departureTime, 40),
+      scheduled_departure: addMinutes(departureTime, 3),
+      scheduled_arrival: addMinutes(departureTime, 43),
       total_time_min: 40,
-      travel_time_min: 35,
-      wait_time_min: 5,
+      travel_time_min: 37,
+      wait_time_min: 3,
       walk_time_min: 0,
       distance_km: 13.4,
       stops_count: 25,
@@ -116,11 +125,11 @@ export default function ResultsPage() {
       route_id: '85DOWN',
       route_short_name: '85DOWN',
       route_long_name: 'Shivaji Stadium to Anand Vihar ISBT',
-      scheduled_departure: departureTime,
-      scheduled_arrival: addMinutes(departureTime, 50),
+      scheduled_departure: addMinutes(departureTime, 7),
+      scheduled_arrival: addMinutes(departureTime, 57),
       total_time_min: 50,
-      travel_time_min: 45,
-      wait_time_min: 5,
+      travel_time_min: 43,
+      wait_time_min: 7,
       walk_time_min: 0,
       distance_km: 12.3,
       stops_count: 23,
@@ -132,11 +141,11 @@ export default function ResultsPage() {
       route_id: '764',
       route_short_name: '764',
       route_long_name: 'Najafgarh to Connaught Place',
-      scheduled_departure: addMinutes(departureTime, 5),
-      scheduled_arrival: addMinutes(departureTime, 51),
+      scheduled_departure: addMinutes(departureTime, 12),
+      scheduled_arrival: addMinutes(departureTime, 58),
       total_time_min: 46,
-      travel_time_min: 40,
-      wait_time_min: 6,
+      travel_time_min: 34,
+      wait_time_min: 12,
       walk_time_min: 0,
       distance_km: 13.8,
       stops_count: 27,
@@ -148,11 +157,11 @@ export default function ResultsPage() {
       route_id: '534',
       route_short_name: '534',
       route_long_name: 'Mori Gate to Nehru Place',
-      scheduled_departure: addMinutes(departureTime, 10),
-      scheduled_arrival: addMinutes(departureTime, 62),
+      scheduled_departure: addMinutes(departureTime, 18),
+      scheduled_arrival: addMinutes(departureTime, 70),
       total_time_min: 52,
-      travel_time_min: 44,
-      wait_time_min: 8,
+      travel_time_min: 34,
+      wait_time_min: 18,
       walk_time_min: 0,
       distance_km: 12.8,
       stops_count: 25,
@@ -336,22 +345,6 @@ export default function ResultsPage() {
                   distanceKm={selectedOption?.distance_km || 13.4}
                   height="340px"
                 />
-              </div>
-
-              {/* Map Legend Bar */}
-              <div className="px-4 py-2.5 bg-[#e9f7ee] flex flex-wrap items-center justify-between gap-3 text-xs text-[#404942] border-t border-[#d8e6dd]">
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#004327]"></span> Boarding
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full border-2 border-[#004327] bg-white"></span> Alighting
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-5 h-1 bg-[#004327] rounded-full"></span> Bus track
-                  </span>
-                </div>
-                <span className="text-[#707971] text-[11px]">Approximate path between stops</span>
               </div>
             </div>
 

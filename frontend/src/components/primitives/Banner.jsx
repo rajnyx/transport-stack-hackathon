@@ -32,7 +32,7 @@ export default function Banner({
           </span>
         </div>
         <span className="hidden sm:inline-block text-[11px] text-white/70 font-mono flex-shrink-0">
-          GTFS + 2.56M tickets
+          GTFS + 2,559,899 tickets
         </span>
       </div>
     </div>
