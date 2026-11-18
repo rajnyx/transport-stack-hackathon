@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Clock,
@@ -93,6 +93,11 @@ export default function RouteDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Height sync & scroll refs
+  const rightColRef = useRef(null);
+  const scrollRef = useRef(null);
+  const [leftHeight, setLeftHeight] = useState(null);
+
   useEffect(() => {
     document.title = `Route ${routeId} Crowding & Schedule | CrowdWise Delhi`;
   }, [routeId]);
@@ -143,6 +148,40 @@ export default function RouteDetailsPage() {
     return cleanup;
   }, [routeId, dayType, lang]);
 
+  // Synchronize the height of the left Stop Timeline card with the right column (Diurnal Chart + Map)
+  const stops = routeInfo?.stops || [];
+  useEffect(() => {
+    const updateHeight = () => {
+      if (window.innerWidth >= 1024 && rightColRef.current) {
+        const h = rightColRef.current.offsetHeight;
+        if (h > 300) {
+          setLeftHeight(h);
+          return;
+        }
+      }
+      setLeftHeight(null);
+    };
+
+    updateHeight();
+    const rafId = requestAnimationFrame(updateHeight);
+
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined' && rightColRef.current) {
+      ro = new ResizeObserver(() => {
+        updateHeight();
+      });
+      ro.observe(rightColRef.current);
+    }
+
+    window.addEventListener('resize', updateHeight);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (ro) ro.disconnect();
+      window.removeEventListener('resize', updateHeight);
+    };
+  }, [profileData, weekendProfileData, routeInfo, stops.length]);
+
   // Clean diurnal chart data comparing weekday vs weekend
   const chartData = useMemo(() => {
     const hourly = profileData?.hourly_profile || [];
@@ -179,7 +218,6 @@ export default function RouteDetailsPage() {
     return `Peak crowding occurs around ${peakHour} with an estimated average load index of ${peakMeanLoad}.`;
   }, [chartData, lang]);
 
-  const stops = routeInfo?.stops || [];
   const routeNum = routeInfo?.route_short_name || routeId;
 
   // Segment crowd level computation for chosen hour
@@ -190,14 +228,6 @@ export default function RouteDetailsPage() {
     if (rci > 50) return 'moderate';
     return 'low';
   };
-
-  // Safe first & last stop label
-  const firstStopLabel = stops.length > 0
-    ? (stops[0]?.stop_name || stops[0]?.name || '').split('/')[0].trim()
-    : '';
-  const lastStopLabel = stops.length > 0
-    ? (stops[stops.length - 1]?.stop_name || stops[stops.length - 1]?.name || '').split('/')[0].trim()
-    : '';
 
   // Polyline coordinates for high-res map track
   const shapePoints = useMemo(() => {
@@ -212,6 +242,17 @@ export default function RouteDetailsPage() {
     }
     return [];
   }, [routeInfo]);
+
+  // Toggle scroll position between top and bottom of stop list
+  const toggleScrollTopEnd = () => {
+    const el = scrollRef.current;
+    if (el) {
+      el.scrollTo({
+        top: el.scrollTop > 50 ? 0 : el.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   // Loading skeleton state
   if (loading && !routeInfo) {
@@ -351,9 +392,13 @@ export default function RouteDetailsPage() {
       </div>
 
       {/* Main Grid: Vertical Timeline (Left) & Diurnal Chart + Map (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Left Column: Vertical Stop Timeline with Crowd Colors (6 cols) */}
-        <div className="lg:col-span-6 bg-white border border-transit-border rounded-panel p-4 flex flex-col h-full min-h-0 justify-between">
+        <div
+          style={leftHeight ? { height: `${leftHeight}px`, maxHeight: `${leftHeight}px` } : {}}
+          className="lg:col-span-6 bg-white border border-transit-border rounded-panel p-4 flex flex-col justify-between overflow-hidden shadow-xs"
+        >
+          {/* Card Header (Pinned) */}
           <div className="flex items-center justify-between border-b border-transit-border pb-2.5 flex-shrink-0">
             <div>
               <h2 className="text-sm font-bold text-navy">
@@ -371,8 +416,12 @@ export default function RouteDetailsPage() {
             </div>
           </div>
 
-          {/* Timeline List - Scrolls cleanly and aligns baseline with Map Card */}
-          <div className="space-y-0 flex-1 min-h-0 max-lg:max-h-[480px] overflow-y-auto pr-2 mt-3 custom-scrollbar">
+          {/* Timeline List - Scrollable viewport matching the map height */}
+          <div
+            ref={scrollRef}
+            id="route-stops-scroll-viewport"
+            className="space-y-0 flex-1 min-h-0 overflow-y-auto pr-2 mt-3 custom-scrollbar"
+          >
             {stops.map((stop, idx) => {
               const segCrowd = getSegmentCrowd(idx);
               const isFirst = idx === 0;
@@ -407,9 +456,21 @@ export default function RouteDetailsPage() {
                   {/* Stop Name & Crowd Chip */}
                   <div className="pb-4 min-w-0 flex-1 flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <span className="text-xs font-semibold text-navy truncate block">
-                        {stop.stop_name || stop.name || `Stop #${idx + 1}`}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`text-xs ${isFirst || isLast ? 'font-bold text-navy' : 'font-semibold text-navy'} truncate block`}>
+                          {stop.stop_name || stop.name || `Stop #${idx + 1}`}
+                        </span>
+                        {isFirst && (
+                          <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 tracking-wider">
+                            {lang === 'hi' ? 'बोर्ड करें' : 'BOARD'}
+                          </span>
+                        )}
+                        {isLast && (
+                          <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200 tracking-wider">
+                            {lang === 'hi' ? 'उतरें' : 'ALIGHT'}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[10px] text-transit-textMuted font-mono">
                         {stop.stop_id || stop.id} {stop.time ? `• ${stop.time}` : ''}
                       </span>
@@ -430,22 +491,42 @@ export default function RouteDetailsPage() {
             })}
           </div>
 
-          {/* Timeline Bottom Anchor (Aligns baseline with Map Card) */}
-          <div className="flex-shrink-0 mt-3 pt-3 border-t border-transit-border flex items-center justify-between text-xs text-transit-textMuted">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{lang === 'hi' ? `सभी ${stops.length} स्टॉप सक्रिय` : `All ${stops.length} stops active`}</span>
-            </span>
-            {stops.length > 0 && (
-              <span className="text-[11px] font-medium text-navy truncate max-w-[260px]">
-                {firstStopLabel} → {lastStopLabel}
+          {/* Bottom Pinned Control Footer (Matching user's Image 2 reference) */}
+          <div className="flex-shrink-0 mt-3 pt-2.5 border-t border-emerald-100/70 bg-emerald-50/50 -mx-4 -mb-4 px-4 py-2.5 rounded-b-panel flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-medium text-emerald-900">
+              <svg
+                className="w-3.5 h-3.5 text-emerald-700 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                />
+              </svg>
+              <span>
+                {lang === 'hi'
+                  ? `सभी ${stops.length} स्टॉप देखने के लिए स्क्रॉल करें`
+                  : `Scroll to preview all ${stops.length} stops`}
               </span>
-            )}
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleScrollTopEnd}
+              className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 bg-white px-2.5 py-1 rounded-md border border-emerald-200 shadow-xs flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <span>{lang === 'hi' ? 'ऊपर / नीचे' : 'Toggle top / end'}</span>
+              <span className="text-[10px]">↕</span>
+            </button>
           </div>
         </div>
 
         {/* Right Column: Diurnal Crowding Profile Chart & Map (6 cols) */}
-        <div className="lg:col-span-6 flex flex-col space-y-4">
+        <div ref={rightColRef} className="lg:col-span-6 flex flex-col space-y-4">
           {/* Diurnal Chart Card */}
           <div className="bg-white border border-transit-border rounded-panel p-4 space-y-3 flex-shrink-0">
             <div>
