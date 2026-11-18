@@ -3,10 +3,9 @@ import { useParams, Link } from 'react-router-dom';
 import {
   Clock,
   ArrowRight,
-  ChevronDown,
-  ChevronUp,
   Map as MapIcon,
-  Calendar,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -20,13 +19,70 @@ import {
 } from 'recharts';
 import { getRouteDetails, getRouteCrowdProfile } from '../api';
 import RouteBadge from '../components/primitives/RouteBadge';
-import CrowdStrip, { normalizeCrowdCategory } from '../components/primitives/CrowdStrip';
+import CrowdStrip from '../components/primitives/CrowdStrip';
 import LeafletRouteMap from '../components/LeafletRouteMap';
 import SegmentedControl from '../components/primitives/SegmentedControl';
 import { useTranslation } from '../i18n/LanguageContext';
 
+function RouteDetailsSkeleton() {
+  return (
+    <div className="py-4 space-y-4 animate-pulse">
+      {/* Route Header Skeleton */}
+      <div className="bg-white border border-transit-border rounded-panel p-4 sm:p-5 shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-16 h-8 bg-transit-borderSubtle rounded-[4px]" />
+            <div className="space-y-1.5">
+              <div className="w-48 h-5 bg-transit-borderSubtle rounded-[2px]" />
+              <div className="w-32 h-3.5 bg-transit-borderSubtle rounded-[2px]" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <div className="w-16 h-7 bg-transit-borderSubtle rounded-full" />
+            <div className="w-16 h-7 bg-transit-borderSubtle rounded-full" />
+            <div className="w-16 h-7 bg-transit-borderSubtle rounded-full" />
+          </div>
+        </div>
+        <div className="pt-2 border-t border-transit-border flex items-center justify-between">
+          <div className="w-44 h-7 bg-transit-borderSubtle rounded-[4px]" />
+          <div className="w-32 h-7 bg-transit-borderSubtle rounded-[4px]" />
+        </div>
+      </div>
+
+      {/* Main Grid Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div className="lg:col-span-6 bg-white border border-transit-border rounded-panel p-4 h-[680px] flex flex-col justify-between">
+          <div className="w-40 h-5 bg-transit-borderSubtle rounded-[2px]" />
+          <div className="space-y-4 py-4 flex-1">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-3.5 h-3.5 rounded-full bg-transit-borderSubtle shrink-0" />
+                <div className="w-3/5 h-4 bg-transit-borderSubtle rounded-[2px]" />
+                <div className="w-16 h-3 bg-transit-borderSubtle rounded-[2px] ml-auto" />
+              </div>
+            ))}
+          </div>
+          <div className="w-full h-8 bg-transit-borderSubtle rounded-[4px]" />
+        </div>
+
+        <div className="lg:col-span-6 space-y-4">
+          <div className="bg-white border border-transit-border rounded-panel p-4 h-[320px]">
+            <div className="w-56 h-5 bg-transit-borderSubtle rounded-[2px] mb-4" />
+            <div className="w-full h-56 bg-transit-borderSubtle rounded-[4px]" />
+          </div>
+          <div className="bg-white border border-transit-border rounded-panel p-4 h-[340px]">
+            <div className="w-40 h-5 bg-transit-borderSubtle rounded-[2px] mb-4" />
+            <div className="w-full h-64 bg-transit-borderSubtle rounded-[4px]" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RouteDetailsPage() {
-  const { id: routeId = '101UP' } = useParams();
+  const { id: rawRouteId = '101UP' } = useParams();
+  const routeId = rawRouteId ? rawRouteId.toUpperCase() : '101UP';
   const { t, lang } = useTranslation();
 
   const [routeInfo, setRouteInfo] = useState(null);
@@ -34,7 +90,6 @@ export default function RouteDetailsPage() {
   const [weekendProfileData, setWeekendProfileData] = useState(null);
   const [dayType, setDayType] = useState('WEEKDAY');
   const [selectedHour, setSelectedHour] = useState(18); // Default 6:00 pm peak
-  const [showMap, setShowMap] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -42,7 +97,7 @@ export default function RouteDetailsPage() {
     document.title = `Route ${routeId} Crowding & Schedule | CrowdWise Delhi`;
   }, [routeId]);
 
-  useEffect(() => {
+  const loadData = () => {
     let isMounted = true;
     setLoading(true);
     setError(null);
@@ -56,6 +111,13 @@ export default function RouteDetailsPage() {
         if (!isMounted) return;
         if (routeRes.ok && routeRes.data) {
           setRouteInfo(routeRes.data);
+        } else if (!routeRes.ok) {
+          setError(
+            routeRes.error?.message ||
+              (lang === 'hi'
+                ? `रूट ${routeId} की जानकारी प्राप्त नहीं हो सकी।`
+                : `Could not retrieve details for Route ${routeId}.`)
+          );
         }
         if (profileRes.ok && profileRes.data) {
           setProfileData(profileRes.data);
@@ -74,6 +136,11 @@ export default function RouteDetailsPage() {
     return () => {
       isMounted = false;
     };
+  };
+
+  useEffect(() => {
+    const cleanup = loadData();
+    return cleanup;
   }, [routeId, dayType, lang]);
 
   // Clean diurnal chart data comparing weekday vs weekend
@@ -95,7 +162,7 @@ export default function RouteDetailsPage() {
     });
   }, [profileData, weekendProfileData]);
 
-  // Compute one-sentence takeaway from data
+  // Compute one-sentence takeaway from data safely
   const takeawaySentence = useMemo(() => {
     if (!chartData || chartData.length === 0) {
       return lang === 'hi'
@@ -104,12 +171,12 @@ export default function RouteDetailsPage() {
     }
     const maxHourObj = [...chartData].sort((a, b) => b.mean_load - a.mean_load)[0];
     const peakHour = maxHourObj?.hour || '6 pm';
-    const peakCrowd = maxHourObj?.category || 'Fairly crowded';
+    const peakMeanLoad = maxHourObj?.mean_load ?? 0;
 
     if (lang === 'hi') {
-      return `यह रूट मुख्य रूप से ${peakHour} के आसपास सबसे व्यस्त रहता है (औसत लोड इंडेक्स: ${maxHourObj.mean_load})।`;
+      return `यह रूट मुख्य रूप से ${peakHour} के आसपास सबसे व्यस्त रहता है (औसत लोड इंडेक्स: ${peakMeanLoad})।`;
     }
-    return `Peak crowding occurs around ${peakHour} with an estimated average load index of ${maxHourObj.mean_load}.`;
+    return `Peak crowding occurs around ${peakHour} with an estimated average load index of ${peakMeanLoad}.`;
   }, [chartData, lang]);
 
   const stops = routeInfo?.stops || [];
@@ -123,6 +190,87 @@ export default function RouteDetailsPage() {
     if (rci > 50) return 'moderate';
     return 'low';
   };
+
+  // Safe first & last stop label
+  const firstStopLabel = stops.length > 0
+    ? (stops[0]?.stop_name || stops[0]?.name || '').split('/')[0].trim()
+    : '';
+  const lastStopLabel = stops.length > 0
+    ? (stops[stops.length - 1]?.stop_name || stops[stops.length - 1]?.name || '').split('/')[0].trim()
+    : '';
+
+  // Polyline coordinates for high-res map track
+  const shapePoints = useMemo(() => {
+    if (routeInfo?.shape_points && routeInfo.shape_points.length > 0) {
+      return routeInfo.shape_points;
+    }
+    if (routeInfo?.polyline_coords && routeInfo.polyline_coords.length > 0) {
+      return routeInfo.polyline_coords.map((p) => ({
+        lat: p[0],
+        lon: p[1],
+      }));
+    }
+    return [];
+  }, [routeInfo]);
+
+  // Loading skeleton state
+  if (loading && !routeInfo) {
+    return <RouteDetailsSkeleton />;
+  }
+
+  // Error state
+  if (error && !routeInfo) {
+    return (
+      <div className="py-12 max-w-lg mx-auto">
+        <div className="p-6 bg-white border border-transit-border rounded-panel shadow-sm text-center space-y-4">
+          <div className="w-12 h-12 mx-auto rounded-full bg-red-50 flex items-center justify-center text-red-600">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-navy">
+              {lang === 'hi' ? 'रूट विवरण नहीं मिला' : 'Route Details Unavailable'}
+            </h2>
+            <p className="text-xs text-transit-textMuted mt-1">
+              {error}
+            </p>
+          </div>
+
+          <div className="pt-2 flex items-center justify-center gap-3">
+            <Link
+              to="/results"
+              className="px-4 py-2 bg-navy text-white text-xs font-semibold rounded-[4px] hover:bg-navy/90 transition-colors"
+            >
+              {lang === 'hi' ? 'खोज पर वापस जाएं' : 'Back to Journey Planner'}
+            </Link>
+            <button
+              type="button"
+              onClick={loadData}
+              className="px-4 py-2 bg-white border border-transit-border text-xs font-semibold text-navy rounded-[4px] hover:bg-stone-50 transition-colors inline-flex items-center gap-1.5"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              {lang === 'hi' ? 'पुनः प्रयास करें' : 'Retry'}
+            </button>
+          </div>
+
+          {/* Quick link to known good routes */}
+          <div className="pt-3 border-t border-transit-border text-xs text-transit-textMuted">
+            <span>{lang === 'hi' ? 'उपलब्ध रूट आज़माएं: ' : 'Try available routes: '}</span>
+            <div className="inline-flex gap-1.5 ml-1">
+              {['73UP', '85DOWN', '108AUP'].map((r) => (
+                <Link
+                  key={r}
+                  to={`/route/${r}`}
+                  className="font-bold text-teal hover:underline"
+                >
+                  {r}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="py-4 space-y-4">
@@ -202,11 +350,11 @@ export default function RouteDetailsPage() {
         </div>
       </div>
 
-      {/* Main Grid: Vertical Timeline & Diurnal Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      {/* Main Grid: Vertical Timeline (Left) & Diurnal Chart + Map (Right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         {/* Left Column: Vertical Stop Timeline with Crowd Colors (6 cols) */}
-        <div className="lg:col-span-6 bg-white border border-transit-border rounded-panel p-4 space-y-3">
-          <div className="flex items-center justify-between border-b border-transit-border pb-2.5">
+        <div className="lg:col-span-6 bg-white border border-transit-border rounded-panel p-4 flex flex-col h-full min-h-0 justify-between">
+          <div className="flex items-center justify-between border-b border-transit-border pb-2.5 flex-shrink-0">
             <div>
               <h2 className="text-sm font-bold text-navy">
                 {lang === 'hi' ? 'स्टॉप समयरेखा और भीड़ स्तर' : 'Stop Timeline & Crowding'}
@@ -215,11 +363,16 @@ export default function RouteDetailsPage() {
                 {selectedHour % 12 || 12}:00 {selectedHour >= 12 ? 'pm' : 'am'} ({dayType.toLowerCase()})
               </p>
             </div>
-            <CrowdStrip category={getSegmentCrowd(0)} size="sm" />
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/50">
+                {stops.length} {lang === 'hi' ? 'स्टॉप' : 'stops'}
+              </span>
+              <CrowdStrip category={getSegmentCrowd(0)} size="sm" />
+            </div>
           </div>
 
-          {/* Timeline List */}
-          <div className="space-y-0 max-h-[520px] overflow-y-auto pr-2">
+          {/* Timeline List - Scrolls cleanly and aligns baseline with Map Card */}
+          <div className="space-y-0 flex-1 min-h-0 max-lg:max-h-[480px] overflow-y-auto pr-2 mt-3 custom-scrollbar">
             {stops.map((stop, idx) => {
               const segCrowd = getSegmentCrowd(idx);
               const isFirst = idx === 0;
@@ -233,7 +386,7 @@ export default function RouteDetailsPage() {
                   : 'bg-[#145C3A]';
 
               return (
-                <div key={stop.stop_id || idx} className="relative flex items-start">
+                <div key={stop.stop_id || stop.id || idx} className="relative flex items-start">
                   {/* Timeline Spine Column */}
                   <div className="flex flex-col items-center mr-4 w-5 flex-shrink-0">
                     {/* Node Dot */}
@@ -255,10 +408,10 @@ export default function RouteDetailsPage() {
                   <div className="pb-4 min-w-0 flex-1 flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <span className="text-xs font-semibold text-navy truncate block">
-                        {stop.stop_name || `Stop #${idx + 1}`}
+                        {stop.stop_name || stop.name || `Stop #${idx + 1}`}
                       </span>
                       <span className="text-[10px] text-transit-textMuted font-mono">
-                        {stop.stop_id}
+                        {stop.stop_id || stop.id} {stop.time ? `• ${stop.time}` : ''}
                       </span>
                     </div>
 
@@ -276,12 +429,25 @@ export default function RouteDetailsPage() {
               );
             })}
           </div>
+
+          {/* Timeline Bottom Anchor (Aligns baseline with Map Card) */}
+          <div className="flex-shrink-0 mt-3 pt-3 border-t border-transit-border flex items-center justify-between text-xs text-transit-textMuted">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{lang === 'hi' ? `सभी ${stops.length} स्टॉप सक्रिय` : `All ${stops.length} stops active`}</span>
+            </span>
+            {stops.length > 0 && (
+              <span className="text-[11px] font-medium text-navy truncate max-w-[260px]">
+                {firstStopLabel} → {lastStopLabel}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Right Column: Diurnal Crowding Profile Chart & Map (6 cols) */}
-        <div className="lg:col-span-6 space-y-4">
+        <div className="lg:col-span-6 flex flex-col space-y-4">
           {/* Diurnal Chart Card */}
-          <div className="bg-white border border-transit-border rounded-panel p-4 space-y-3">
+          <div className="bg-white border border-transit-border rounded-panel p-4 space-y-3 flex-shrink-0">
             <div>
               <h2 className="text-sm font-bold text-navy">
                 {lang === 'hi' ? '24 घंटे का भीड़ प्रोफाइल (कार्यदिवस बनाम सप्ताहांत)' : '24-Hour Crowding Profile (Weekday vs Weekend)'}
@@ -361,34 +527,25 @@ export default function RouteDetailsPage() {
             </div>
           </div>
 
-          {/* Map Preview (Collapsible on Mobile) */}
-          <div className="bg-white border border-transit-border rounded-panel p-4 space-y-3">
-            <div className="flex items-center justify-between">
+          {/* Route Map Card (Always Visible) */}
+          <div className="bg-white border border-transit-border rounded-panel p-4 flex flex-col space-y-3">
+            <div className="flex items-center justify-between flex-shrink-0">
               <span className="text-xs font-bold text-navy flex items-center gap-1.5">
                 <MapIcon className="w-3.5 h-3.5 text-teal" />
                 {lang === 'hi' ? 'रूट मानचित्र' : 'Route Map'}
               </span>
-              <button
-                type="button"
-                onClick={() => setShowMap(!showMap)}
-                className="text-xs text-teal font-semibold hover:underline"
-              >
-                {showMap
-                  ? (lang === 'hi' ? 'मानचित्र छुपाएं' : 'Hide map')
-                  : (lang === 'hi' ? 'मानचित्र दिखाएं' : 'Show map')}
-              </button>
+              <span className="text-[11px] text-transit-textMuted font-medium">
+                {stops.length} {lang === 'hi' ? 'स्टॉप' : 'stops'} • {routeInfo?.total_distance_km || routeInfo?.distance_km || '24.0'} km corridor
+              </span>
             </div>
 
-            {showMap && (
-              <div className="pt-2 animate-fade-in">
-                <LeafletRouteMap
-                  stops={stops}
-                  shapePoints={routeInfo?.shape_points || []}
-                  crowdCategory={getSegmentCrowd(0)}
-                  height="260px"
-                />
-              </div>
-            )}
+            <div className="pt-1">
+              <LeafletRouteMap
+                stops={stops}
+                shapePoints={shapePoints}
+                height="300px"
+              />
+            </div>
           </div>
         </div>
       </div>
