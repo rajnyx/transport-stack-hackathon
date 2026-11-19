@@ -77,6 +77,7 @@ export default function App() {
               <Route path="/" element={<PlannerPage />} />
               <Route path="/results" element={<ResultsPage />} />
               <Route path="/route/:id" element={<RouteDetailsPage />} />
+              <Route path="/routes/:id" element={<RouteDetailsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="*" element={<NotFoundPage />} />

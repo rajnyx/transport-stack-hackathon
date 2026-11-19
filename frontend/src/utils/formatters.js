@@ -106,7 +106,10 @@ export function formatConfidence(confidence, ticketCount = null) {
   if (c === 'low' || c === 'little') {
     return 'Based on little data';
   }
-  return 'Based on historical data';
+  if (c === 'thin' || c === 'not enough' || c === 'none') {
+    return 'Not enough data';
+  }
+  return 'Not enough data';
 }
 
 /**
@@ -174,12 +177,12 @@ export const CANONICAL_DELHI_25_STOPS = [
 ];
 
 /**
- * Returns occupancy & crowd level for a specific leg between stop[i] and stop[i+1].
- * Uses corridor accumulation and relative zone variation to reflect data-grounded load.
- * Standard Civic Transit Colors & Thresholds:
- * - Red (#C64B4B): High occupancy / Very crowded (occupancy >= 85% / 0.85)
- * - Amber (#E0A51A): Moderate occupancy / Standing room (60% <= occupancy < 85%)
- * - Green (#145C3A): Low occupancy / Seats Available (occupancy < 60% / 0.60)
+ * Returns crowd level for a specific leg between stop[i] and stop[i+1].
+ * Uses corridor zone variation to reflect data-grounded load.
+ * Standard Civic Transit Colors:
+ * - Red (#C64B4B): High crowd / Crowded
+ * - Amber (#E0A51A): Moderate crowd / Standing room
+ * - Green (#145C3A): Low crowd / Seats Available
  * - Grey (#CBD5E1): Not enough data
  */
 export function getLegOccupancy(stopIndex, totalStops, zoneForecasts = [], fallbackCategory = 'moderate') {
@@ -217,40 +220,19 @@ export function getLegOccupancy(stopIndex, totalStops, zoneForecasts = [], fallb
     }
   }
 
-  // Base accumulation curve across the transit corridor
+  // Base crowd index without synthetic sinusoidal variation
   let calculatedRci = 30;
   if (isHigh) {
-    // Crowded route: Green at terminal -> Amber at feeder -> Red in core corridor -> Amber -> Green
-    if (frac < 0.15) {
-      calculatedRci = 38 + (frac / 0.15) * 16; // 38 -> 54 (Green)
-    } else if (frac <= 0.72) {
-      const midProg = (frac - 0.15) / 0.57;
-      const arc = Math.sin(midProg * Math.PI);
-      calculatedRci = (78 + arc * 14) * zoneMod; // 78 -> 92 (Red in core)
-    } else {
-      const endProg = (frac - 0.72) / 0.28;
-      calculatedRci = 78 - endProg * 45; // 78 -> 33 (Amber then Green)
-    }
+    calculatedRci = 85 * zoneMod;
   } else if (isMod) {
-    // Moderate route: Green at origin -> Amber across corridor -> Green at destination
-    if (frac < 0.18) {
-      calculatedRci = 34 + (frac / 0.18) * 20; // 34 -> 54 (Green)
-    } else if (frac <= 0.72) {
-      const midProg = (frac - 0.18) / 0.54;
-      const arc = Math.sin(midProg * Math.PI);
-      calculatedRci = (62 + arc * 10) * zoneMod; // 62 -> 72 (Amber)
-    } else {
-      const endProg = (frac - 0.72) / 0.28;
-      calculatedRci = 62 - endProg * 32; // 62 -> 30 (Green)
-    }
+    calculatedRci = 65 * zoneMod;
   } else {
-    // Low route: comfortably below capacity throughout
-    calculatedRci = 18 + Math.sin(frac * Math.PI) * 16; // 18 -> 34 (All Green)
+    calculatedRci = 30 * zoneMod;
   }
 
   const finalRci = Math.round(Math.max(15, Math.min(96, calculatedRci)));
 
-  if (finalRci >= 85) {
+  if (finalRci >= 80) {
     return {
       rci: finalRci,
       load: Math.round(finalRci * 0.6),
@@ -262,7 +244,7 @@ export function getLegOccupancy(stopIndex, totalStops, zoneForecasts = [], fallb
     };
   }
 
-  if (finalRci >= 60) {
+  if (finalRci >= 55) {
     return {
       rci: finalRci,
       load: Math.round(finalRci * 0.6),
@@ -287,10 +269,10 @@ export function getLegOccupancy(stopIndex, totalStops, zoneForecasts = [], fallb
 
 /**
  * Standard Civic Transit Segment Color Helper
- * Maps corridor segment occupancy metric to standard civic colors:
- * - Low Occupancy / Seats Available (< 60% capacity or "low"): #145C3A (Green)
- * - Moderate Occupancy / Standing Room (60% – 85% capacity or "medium"): #E0A51A (Amber/Yellow)
- * - High Occupancy / Crowded / Crush (> 85% capacity or "high"): #C64B4B (Red)
+ * Maps corridor segment crowd metric to standard civic colors:
+ * - Low Occupancy / Seats Available: #145C3A (Green)
+ * - Moderate Occupancy / Standing Room: #E0A51A (Amber/Yellow)
+ * - High Occupancy / Crowded: #C64B4B (Red)
  * - Fallback / Insufficient Data: #CBD5E1 (Neutral slate grey)
  */
 export function getSegmentColorClass(occupancy) {
@@ -314,9 +296,9 @@ export function getSegmentColorClass(occupancy) {
 /**
  * Standard Civic Transit Stop Node Circle Color Helper
  * Returns the tailwind background color class for a stop circle node based on expected crowd.
- * - Low crowd (< 60% capacity): #145C3A (Green)
- * - Moderate crowd (60% – 85% capacity): #E0A51A (Amber/Yellow)
- * - High crowd (> 85% capacity): #C64B4B (Red)
+ * - Low crowd / Seats Available: #145C3A (Green)
+ * - Moderate crowd / Standing Room: #E0A51A (Amber/Yellow)
+ * - High crowd / Crowded: #C64B4B (Red)
  * - Fallback / Unknown: #BDC7C1 (Slate grey)
  */
 export function getStopCrowdColorClass(stop, stopIndex, totalStops, zoneBreakdown = [], crowdCategory = 'moderate') {

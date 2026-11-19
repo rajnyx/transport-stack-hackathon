@@ -14,10 +14,13 @@ import {
 import { useTranslation } from '../i18n/LanguageContext';
 
 export default function AboutPage() {
-  const { lang } = useTranslation();
+  const { t, lang } = useTranslation();
   const [sanityData, setSanityData] = useState(null);
   const [metaData, setMetaData] = useState(null);
   const [modelMetrics, setModelMetrics] = useState(null);
+  const [sensitivityData, setSensitivityData] = useState(null);
+  const [sensitivityDayType, setSensitivityDayType] = useState('WEEKDAY');
+  const [loadingSensitivity, setLoadingSensitivity] = useState(false);
 
   useEffect(() => {
     document.title = lang === 'hi' ? 'डेटा और कार्यप्रणाली — CrowdWise' : 'Data & Method — CrowdWise';
@@ -37,6 +40,15 @@ export default function AboutPage() {
       .then((d) => d && setModelMetrics(d.data))
       .catch(() => {});
   }, [lang]);
+
+  useEffect(() => {
+    setLoadingSensitivity(true);
+    fetch(`/api/analytics/sensitivity?day_type=${sensitivityDayType}&limit=10`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => d && setSensitivityData(d.data))
+      .catch(() => {})
+      .finally(() => setLoadingSensitivity(false));
+  }, [sensitivityDayType]);
 
   return (
     <div className="py-6 space-y-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-[#0F172A]">
@@ -228,6 +240,158 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* Section 4B: Assumptions & Sensitivity Analysis (F3) */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-[#142B3B]">
+              {t('f3.title', 'Assumptions & Sensitivity Analysis')}
+            </h2>
+            <p className="text-sm text-[#475569] mt-0.5">
+              {t(
+                'f3.subtitle',
+                'What-if scenario analysis testing the impact of unrecorded riders (e.g., fare-free Pink Passes)'
+              )}
+            </p>
+          </div>
+          <div className="inline-flex rounded-lg border border-[#CBD5E1] p-0.5 bg-[#F8FAFC]">
+            <button
+              type="button"
+              onClick={() => setSensitivityDayType('WEEKDAY')}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                sensitivityDayType === 'WEEKDAY'
+                  ? 'bg-[#142B3B] text-white shadow-xs'
+                  : 'text-[#64748B] hover:text-[#0F172A]'
+              }`}
+            >
+              {t('f3.weekday', 'Weekday')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSensitivityDayType('WEEKEND')}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                sensitivityDayType === 'WEEKEND'
+                  ? 'bg-[#142B3B] text-white shadow-xs'
+                  : 'text-[#64748B] hover:text-[#0F172A]'
+              }`}
+            >
+              {t('f3.weekend', 'Weekend')}
+            </button>
+          </div>
+        </div>
+
+        {/* Rationale Callout Card */}
+        <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4 text-xs text-[#475569] leading-relaxed space-y-1">
+          <p>
+            <strong className="text-[#0F172A]">
+              {lang === 'hi' ? 'अदर्ज परिदृश्यों का कारण: ' : 'Why unrecorded scenarios? '}
+            </strong>
+            {t(
+              'f3.rationale',
+              'Under the Mukhyamantri Mahila Yatra Yojana, female commuters travel fare-free via Pink Passes (~30% of total network ridership). Because pass holders are not fully recorded in ticketing telemetry, what-if scenarios evaluate sensitivity without inventing a hardcoded multiplier.'
+            )}
+          </p>
+        </div>
+
+        {/* Sensitivity Table */}
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-[#F8FAFC] font-bold text-[#475569] uppercase border-b border-[#E2E8F0]">
+              <tr>
+                <th className="py-3 px-4">{t('f3.route', 'Route / Corridor')}</th>
+                <th className="py-3 px-3">{t('f3.vehicleClass', 'Vehicle Class')}</th>
+                <th className="py-3 px-3 tabular-nums">{t('f3.baseline0', 'Baseline (0%)')}</th>
+                <th className="py-3 px-3 tabular-nums">{t('f3.scenario10', '+10% Load')}</th>
+                <th className="py-3 px-3 tabular-nums">{t('f3.scenario20', '+20% Load')}</th>
+                <th className="py-3 px-3 tabular-nums font-extrabold text-[#142B3B]">
+                  {t('f3.scenario30', '+30% (Pink Pass)')}
+                </th>
+                <th className="py-3 px-3">{t('f3.crowdShift', 'Crowd Shift')}</th>
+                <th className="py-3 px-4">{t('f3.confidence', 'Confidence')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E2E8F0]">
+              {loadingSensitivity ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-slate-500">
+                    <div className="w-4 h-4 border-2 border-teal border-t-transparent rounded-full animate-spin mx-auto mb-1.5" />
+                    <span>
+                      {lang === 'hi' ? 'संवेदनशीलता डेटा लोड हो रहा है...' : 'Loading sensitivity scenarios...'}
+                    </span>
+                  </td>
+                </tr>
+              ) : sensitivityData?.top_routes?.length ? (
+                sensitivityData.top_routes.map((route) => {
+                  const shiftOccurred = route.baseline_crowd !== route.scenario_30_crowd;
+                  return (
+                    <tr key={route.route_id} className="hover:bg-[#F8FAFC]">
+                      <td className="py-3 px-4 font-bold text-[#142B3B]">
+                        {route.route_id}
+                        <span className="block text-[11px] font-normal text-[#64748B] truncate max-w-[180px]">
+                          {route.route_name}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px]">
+                          {route.vehicle_class} ({route.nominal_capacity} cap)
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 tabular-nums font-semibold">{route.baseline_load}</td>
+                      <td className="py-3 px-3 tabular-nums text-[#475569]">
+                        {route.scenario_loads?.['10%'] || '—'}
+                      </td>
+                      <td className="py-3 px-3 tabular-nums text-[#475569]">
+                        {route.scenario_loads?.['20%'] || '—'}
+                      </td>
+                      <td className="py-3 px-3 tabular-nums font-bold text-[#B91C1C]">
+                        {route.scenario_loads?.['30%'] || '—'}
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              route.baseline_crowd === 'Crowded'
+                                ? 'bg-[#FEF2F2] text-[#B91C1C]'
+                                : route.baseline_crowd === 'Standing Room'
+                                ? 'bg-[#FFFBEB] text-[#B45309]'
+                                : 'bg-[#ECFDF5] text-[#15803D]'
+                            }`}
+                          >
+                            {route.baseline_crowd}
+                          </span>
+                          {shiftOccurred && (
+                            <>
+                              <ArrowRight className="w-3 h-3 text-[#94A3B8]" />
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FEF2F2] text-[#B91C1C]">
+                                {route.scenario_30_crowd}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-[11px] text-[#475569] block font-medium">
+                          {route.confidence_text}
+                        </span>
+                        <span className="text-[10px] text-[#94A3B8]">
+                          {route.sample_ticket_count} tickets
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={8} className="py-6 text-center text-slate-400">
+                    {lang === 'hi' ? 'कोई संवेदनशीलता डेटा उपलब्ध नहीं है' : 'No sensitivity records available'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {/* Section 5: Model Evaluation & Behavioral Checks */}
       <section className="space-y-4">
         <div>
@@ -240,7 +404,7 @@ export default function AboutPage() {
         </div>
 
         {/* Real Metrics Table */}
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-[#F8FAFC] text-xs font-bold text-[#475569] uppercase border-b border-[#E2E8F0]">
               <tr>

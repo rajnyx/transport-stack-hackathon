@@ -1,13 +1,15 @@
 import sqlite3
 
-conn = sqlite3.connect("backend/crowdwise.db")
+conn = sqlite3.connect('backend/crowdwise.db')
 cur = conn.cursor()
-tables = [r[0] for r in cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
-print("Tables and counts in backend/crowdwise.db:")
-for t in sorted(tables):
-    try:
-        cnt = cur.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
-        print(f"  - {t:<22}: {cnt:>8} rows")
-    except Exception as e:
-        print(f"  - {t:<22}: error ({e})")
-conn.close()
+tables = ['dim_routes', 'dim_stops', 'dim_route_patterns', 'rel_pattern_stops', 'fact_zone_demand', 'fact_route_supply', 'fact_hourly_summary']
+for t in tables:
+    cur.execute(f"PRAGMA table_info('{t}')")
+    cols = [f"{col[1]} ({col[2]})" for col in cur.fetchall()]
+    print(f"\nTable {t}:")
+    print(", ".join(cols))
+
+cur.execute("SELECT * FROM fact_zone_demand LIMIT 2")
+print("\nfact_zone_demand sample:", cur.fetchall())
+cur.execute("SELECT * FROM fact_route_supply LIMIT 2")
+print("\nfact_route_supply sample:", cur.fetchall())

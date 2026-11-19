@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Clock, MapPin } from 'lucide-react';
 
 // Auto-fit bounds component with reliable invalidation & focus
 function ChangeView({ bounds }) {
@@ -149,13 +150,15 @@ export default function LeafletRouteMap({
                   <div className="font-bold text-navy text-sm">{stop.stop_name || `Stop #${idx + 1}`}</div>
                   <div className="flex items-center gap-2 mt-1 text-xs">
                     {stop.arrival_time_12h && (
-                      <span className="font-mono font-bold text-teal bg-teal/10 px-1.5 py-0.5 rounded">
-                        🕒 {stop.arrival_time_12h}
+                      <span className="font-mono font-bold text-teal bg-teal/10 px-1.5 py-0.5 rounded inline-flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{stop.arrival_time_12h}</span>
                       </span>
                     )}
                     {stop.distance_km != null && (
-                      <span className="font-medium text-navy bg-transit-bg px-1.5 py-0.5 rounded border border-transit-border">
-                        📍 {stop.distance_km} km
+                      <span className="font-medium text-navy bg-transit-bg px-1.5 py-0.5 rounded border border-transit-border inline-flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        <span>{stop.distance_km} km</span>
                       </span>
                     )}
                   </div>
@@ -165,13 +168,15 @@ export default function LeafletRouteMap({
                     </div>
                   )}
                   {isOrigin && (
-                    <div className="text-[10px] font-bold text-teal mt-1 uppercase tracking-wide">
-                      ● Boarding / Departure Stop
+                    <div className="text-[10px] font-bold text-teal mt-1 uppercase tracking-wide flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-teal shrink-0" />
+                      <span>Boarding / Departure Stop</span>
                     </div>
                   )}
                   {isDest && (
-                    <div className="text-[10px] font-bold text-navy mt-1 uppercase tracking-wide">
-                      ■ Alighting / Destination Stop
+                    <div className="text-[10px] font-bold text-navy mt-1 uppercase tracking-wide flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-[2px] bg-navy shrink-0" />
+                      <span>Alighting / Destination Stop</span>
                     </div>
                   )}
                 </Popup>

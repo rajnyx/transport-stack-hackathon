@@ -6,6 +6,8 @@ import {
   Map as MapIcon,
   AlertCircle,
   RefreshCw,
+  ArrowUpDown,
+  Download,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -17,11 +19,12 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { getRouteDetails, getRouteCrowdProfile } from '../api';
+import { getRouteDetails, getRouteCrowdProfile, getRouteFlow } from '../api';
 import RouteBadge from '../components/primitives/RouteBadge';
 import CrowdStrip from '../components/primitives/CrowdStrip';
 import LeafletRouteMap from '../components/LeafletRouteMap';
 import SegmentedControl from '../components/primitives/SegmentedControl';
+import StopFlowDrawer from '../components/StopFlowDrawer';
 import { useTranslation } from '../i18n/LanguageContext';
 
 function RouteDetailsSkeleton() {
@@ -93,6 +96,12 @@ export default function RouteDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Stop Flow Drawer State
+  const [flowDrawerOpen, setFlowDrawerOpen] = useState(false);
+  const [selectedStopForFlow, setSelectedStopForFlow] = useState(null);
+  const [flowData, setFlowData] = useState(null);
+  const [flowLoading, setFlowLoading] = useState(false);
+
   // Height sync & scroll refs
   const rightColRef = useRef(null);
   const scrollRef = useRef(null);
@@ -147,6 +156,32 @@ export default function RouteDetailsPage() {
     const cleanup = loadData();
     return cleanup;
   }, [routeId, dayType, lang]);
+
+  const routeDirection = routeId.toUpperCase().endsWith('DOWN') ? 'DOWN' : 'UP';
+
+  useEffect(() => {
+    let isMounted = true;
+    setFlowLoading(true);
+    getRouteFlow(routeId, {
+      direction: routeDirection,
+      hour: selectedHour,
+      dayType: dayType.toLowerCase(),
+    })
+      .then((res) => {
+        if (!isMounted) return;
+        if (res?.data) {
+          setFlowData(res.data);
+        }
+        setFlowLoading(false);
+      })
+      .catch(() => {
+        if (isMounted) setFlowLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [routeId, routeDirection, selectedHour, dayType]);
 
   // Synchronize the height of the left Stop Timeline card with the right column (Diurnal Chart + Map)
   const stops = routeInfo?.stops || [];
@@ -388,6 +423,28 @@ export default function RouteDetailsPage() {
               ))}
             </select>
           </div>
+
+          {/* Route Export Buttons (F7) */}
+          <div className="flex items-center gap-2">
+            <a
+              href={`/api/routes/${encodeURIComponent(routeId)}/export?format=csv&day_type=${dayType.toLowerCase()}&hour=${selectedHour}`}
+              download={`${routeId}_crowd_estimates.csv`}
+              className="px-2.5 py-1 bg-white border border-transit-border rounded-[4px] text-xs font-semibold text-navy hover:bg-slate-50 inline-flex items-center gap-1 shadow-2xs transition-colors"
+              title={lang === 'hi' ? 'रूट सीएसवी डाउनलोड करें' : 'Export Route CSV'}
+            >
+              <Download className="w-3.5 h-3.5 text-teal" />
+              <span>{lang === 'hi' ? 'सीएसवी' : 'CSV'}</span>
+            </a>
+            <a
+              href={`/api/routes/${encodeURIComponent(routeId)}/export?format=json&day_type=${dayType.toLowerCase()}&hour=${selectedHour}`}
+              download={`${routeId}_crowd_estimates.json`}
+              className="px-2.5 py-1 bg-white border border-transit-border rounded-[4px] text-xs font-semibold text-navy hover:bg-slate-50 inline-flex items-center gap-1 shadow-2xs transition-colors"
+              title={lang === 'hi' ? 'रूट जेसन डाउनलोड करें' : 'Export Route JSON'}
+            >
+              <Download className="w-3.5 h-3.5 text-teal" />
+              <span>{lang === 'hi' ? 'जेसन' : 'JSON'}</span>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -435,7 +492,20 @@ export default function RouteDetailsPage() {
                   : 'bg-[#145C3A]';
 
               return (
-                <div key={stop.stop_id || stop.id || idx} className="relative flex items-start">
+                <div
+                  key={stop.stop_id || stop.id || idx}
+                  onClick={() => {
+                    setSelectedStopForFlow({
+                      ...stop,
+                      stop_sequence: idx,
+                      stop_id: stop.stop_id || stop.id,
+                      stop_name: stop.stop_name || stop.name,
+                    });
+                    setFlowDrawerOpen(true);
+                  }}
+                  className="relative flex items-start cursor-pointer hover:bg-emerald-50/60 p-1.5 -mx-1.5 rounded-xl transition-all duration-150 group"
+                  title={lang === 'hi' ? 'यात्री प्रवाह देखने के लिए क्लिक करें' : 'Click to inspect passenger flow metrics'}
+                >
                   {/* Timeline Spine Column */}
                   <div className="flex flex-col items-center mr-4 w-5 flex-shrink-0">
                     {/* Node Dot */}
@@ -520,7 +590,7 @@ export default function RouteDetailsPage() {
               className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 bg-white px-2.5 py-1 rounded-md border border-emerald-200 shadow-xs flex items-center gap-1 transition-colors cursor-pointer"
             >
               <span>{lang === 'hi' ? 'ऊपर / नीचे' : 'Toggle top / end'}</span>
-              <span className="text-[10px]">↕</span>
+              <ArrowUpDown className="w-2.5 h-2.5" />
             </button>
           </div>
         </div>
@@ -630,6 +700,19 @@ export default function RouteDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* F6 Stop Flow Drawer */}
+      <StopFlowDrawer
+        isOpen={flowDrawerOpen}
+        onClose={() => setFlowDrawerOpen(false)}
+        routeId={routeNum}
+        selectedStop={selectedStopForFlow}
+        flowData={flowData}
+        onSelectStop={(stop) => setSelectedStopForFlow(stop)}
+        hour={selectedHour}
+        dayType={dayType}
+        loading={flowLoading}
+      />
     </div>
   );
 }

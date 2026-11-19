@@ -313,7 +313,7 @@ class StopSearchEngine:
                     matched_indices[idx] = (0.95, "exact_name")
 
         # 2b. Shorthand boost for prominent transit hubs (e.g. 'cp' -> Connaught Place / Shivaji Stadium)
-        if q_lower in ("cp", "connaught", "rajiv chowk"):
+        if q_lower in ("cp", "rajiv chowk"):
             for idx, stop in enumerate(self.stops):
                 n_l = str(stop.get("stop_name", "")).lower()
                 if "connaught" in n_l or "shivaji stadium" in n_l:
@@ -466,7 +466,7 @@ class StopSearchEngine:
         """Unified multi-modal stop search query entry point."""
         if lat is not None and lon is not None:
             return self.search_nearest(lat, lon, radius_km=radius_km, limit=limit)
-        elif q:
+        elif q is not None:
             return self.search_text(q, limit=limit)
         return self.get_popular_hubs(limit=limit)
 

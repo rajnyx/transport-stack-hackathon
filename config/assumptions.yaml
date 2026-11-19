@@ -1,0 +1,271 @@
+version: "1.0.0"
+title: "CrowdWise Canonical Assumptions Registry"
+description: "Authoritative assumptions and threshold parameters for Transport Stack Hackathon 2026"
+last_updated: "2026-11-18"
+
+# Evidentiary Status categories (Brief R1):
+# - 'our assumption': Parameter chosen by development team based on transit engineering standards
+# - 'from data': Parameter derived empirically from October-Delhi.csv or GTFS static feeds
+# - 'from brief': Parameter mandated by Problem Statement Brief
+
+assumptions:
+  # --- Domain 1: Vehicle Capacity (ASM-01 to ASM-04) ---
+  bus_capacity_standard:
+    id: "ASM-01"
+    parameter_name: "bus_capacity_standard"
+    value: 60
+    unit: "passengers"
+    type: "integer"
+    source: "DTC 12-meter Low-Floor CNG Bus Specifications"
+    status: "our assumption"
+    role: "F2 (Capacity baseline), F4 (Action Sheet deficit calculation)"
+    category: "capacity"
+
+  bus_capacity_ac:
+    id: "ASM-02"
+    parameter_name: "bus_capacity_ac"
+    value: 55
+    unit: "passengers"
+    type: "integer"
+    source: "DTC AC Low-Floor Fleet Guidelines"
+    status: "our assumption"
+    role: "F2 (AC vehicle class crowding), F4"
+    category: "capacity"
+
+  bus_capacity_midi:
+    id: "ASM-03"
+    parameter_name: "bus_capacity_midi"
+    value: 35
+    unit: "passengers"
+    type: "integer"
+    source: "DTC / DIMTS Midi feeder bus standard"
+    status: "our assumption"
+    role: "F2 (Feeder vehicle class)"
+    category: "capacity"
+
+  bus_capacity_verified:
+    id: "ASM-04"
+    parameter_name: "bus_capacity_verified"
+    value: false
+    unit: "boolean"
+    type: "boolean"
+    source: "Dataset audit: zero capacity fields in October-Delhi.csv or GTFS"
+    status: "from data"
+    role: "F2 (Enforces hiding occupancy % in production)"
+    category: "capacity"
+
+  # --- Domain 2: Unrecorded Riders & Sensitivity Scenarios (ASM-05 to ASM-07) ---
+  unrecorded_rider_scenarios:
+    id: "ASM-05"
+    parameter_name: "unrecorded_rider_scenarios"
+    value: [0.00, 0.10, 0.20, 0.30]
+    unit: "ratio"
+    type: "list[float]"
+    source: "Problem Brief Sec 5 & Task Specification F3"
+    status: "from brief"
+    role: "F3 (Sensitivity analysis), F4 (Action Sheet scenario columns)"
+    category: "unrecorded_riders"
+
+  unrecorded_rider_default:
+    id: "ASM-06"
+    parameter_name: "unrecorded_rider_default"
+    value: 0.00
+    unit: "ratio"
+    type: "float"
+    source: "Strict data grounding rule: no invented volume"
+    status: "our assumption"
+    role: "F1, F2, F3 (Default unrecorded baseline)"
+    category: "unrecorded_riders"
+
+  pink_pass_expansion_factor:
+    id: "ASM-07"
+    parameter_name: "pink_pass_expansion_factor"
+    value: 1.30
+    unit: "multiplier"
+    type: "float"
+    source: "Delhi Transport Dept female ridership share audit under Mukhyamantri Mahila Yatra Yojana"
+    status: "our assumption"
+    role: "F3 (Sensitivity ceiling scenario), F6 (Reconstruction safeguard)"
+    category: "unrecorded_riders"
+
+  # --- Domain 3: Confidence & Data Sparsity Thresholds (ASM-08 to ASM-11) ---
+  confidence_high_min_tickets:
+    id: "ASM-08"
+    parameter_name: "confidence_high_min_tickets"
+    value: 100
+    unit: "tickets"
+    type: "integer"
+    source: "Empirical distribution of ticket volume per route-hour in October-Delhi.csv"
+    status: "from data"
+    role: "F1 (Confidence labeling: 'Based on a lot of data')"
+    category: "confidence_and_sparsity"
+
+  confidence_medium_min_tickets:
+    id: "ASM-09"
+    parameter_name: "confidence_medium_min_tickets"
+    value: 30
+    unit: "tickets"
+    type: "integer"
+    source: "Empirical distribution of ticket volume per route-hour in October-Delhi.csv"
+    status: "from data"
+    role: "F1 (Confidence labeling: 'Based on some data')"
+    category: "confidence_and_sparsity"
+
+  confidence_low_min_tickets:
+    id: "ASM-10"
+    parameter_name: "confidence_low_min_tickets"
+    value: 10
+    unit: "tickets"
+    type: "integer"
+    source: "Empirical distribution of ticket volume per route-hour in October-Delhi.csv"
+    status: "from data"
+    role: "F1 (Confidence labeling: 'Based on little data')"
+    category: "confidence_and_sparsity"
+
+  data_sparsity_thin_threshold:
+    id: "ASM-11"
+    parameter_name: "data_sparsity_thin_threshold"
+    value: 10
+    unit: "tickets"
+    type: "integer"
+    source: "Statistical threshold for unrepresentative samples"
+    status: "from data"
+    role: "F1 (Display 'Not enough data' badge for N < 10)"
+    category: "confidence_and_sparsity"
+
+  # --- Domain 4: Relative Crowding Percentile Cutoffs (ASM-12 to ASM-14) ---
+  rci_low_percentile:
+    id: "ASM-12"
+    parameter_name: "rci_low_percentile"
+    value: 40
+    unit: "percentile"
+    type: "integer"
+    source: "Empirical load distribution across 3.32M zone demand facts"
+    status: "from data"
+    role: "F1, F2, F8 (Seats Available category cutoff: < P40)"
+    category: "crowd_percentiles"
+
+  rci_moderate_percentile:
+    id: "ASM-13"
+    parameter_name: "rci_moderate_percentile"
+    value: 75
+    unit: "percentile"
+    type: "integer"
+    source: "Empirical load distribution across 3.32M zone demand facts"
+    status: "from data"
+    role: "F1, F2, F8 (Standing Room category cutoff: P40 - P75)"
+    category: "crowd_percentiles"
+
+  rci_high_percentile:
+    id: "ASM-14"
+    parameter_name: "rci_high_percentile"
+    value: 75
+    unit: "percentile"
+    type: "integer"
+    source: "Empirical load distribution across 3.32M zone demand facts"
+    status: "from data"
+    role: "F1, F2, F8 (Crowded category cutoff: >= P75)"
+    category: "crowd_percentiles"
+
+  # --- Domain 5: Pedestrian & Routing Parameters (ASM-15 to ASM-18) ---
+  walking_speed_kph:
+    id: "ASM-15"
+    parameter_name: "walking_speed_kph"
+    value: 4.5
+    unit: "km/h"
+    type: "float"
+    source: "Transit planning pedestrian speed standard (75 m/min)"
+    status: "our assumption"
+    role: "Journey Planner walk times"
+    category: "pedestrian_and_routing"
+
+  walking_detour_factor:
+    id: "ASM-16"
+    parameter_name: "walking_detour_factor"
+    value: 1.30
+    unit: "multiplier"
+    type: "float"
+    source: "Urban grid / pedestrian street network factor over Haversine distance"
+    status: "our assumption"
+    role: "Journey Planner walk times"
+    category: "pedestrian_and_routing"
+
+  walking_catchment_direct_m:
+    id: "ASM-17"
+    parameter_name: "walking_catchment_direct_m"
+    value: 500
+    unit: "meters"
+    type: "integer"
+    source: "Standard urban bus stop walking radius"
+    status: "our assumption"
+    role: "Journey Planner candidate stop discovery"
+    category: "pedestrian_and_routing"
+
+  walking_catchment_wider_m:
+    id: "ASM-18"
+    parameter_name: "walking_catchment_wider_m"
+    value: 800
+    unit: "meters"
+    type: "integer"
+    source: "Extended walking radius option"
+    status: "our assumption"
+    role: "Journey Planner 'Search wider' option"
+    category: "pedestrian_and_routing"
+
+  # --- Domain 6: Boarding-Stop Advice Thresholds (ASM-19 to ASM-20) ---
+  f9_earlier_stop_max_walk_m:
+    id: "ASM-19"
+    parameter_name: "f9_earlier_stop_max_walk_m"
+    value: 400
+    unit: "meters"
+    type: "integer"
+    source: "Maximum acceptable walk for boarding trade-off (<= 5 min walk)"
+    status: "our assumption"
+    role: "F9 (Boarding-stop advice threshold)"
+    category: "boarding_advice"
+
+  f9_min_confidence_for_advice:
+    id: "ASM-20"
+    parameter_name: "f9_min_confidence_for_advice"
+    value: "medium"
+    unit: "level"
+    type: "string"
+    source: "F9 Requirement: hide advice if confidence is low"
+    status: "from brief"
+    role: "F9 (Suppression guardrail)"
+    category: "boarding_advice"
+
+  # --- Domain 7: Flow Estimation & Attribution (ASM-21 to ASM-22) ---
+  mode_a_matching_rate:
+    id: "ASM-21"
+    parameter_name: "mode_a_matching_rate"
+    value: 0.7732
+    unit: "ratio"
+    type: "float"
+    source: "Exact stop sequence mapping in October-Delhi.csv (1,979,418 of 2,559,899 records = 77.32%)"
+    status: "from data"
+    role: "F6 (Flow attribution label)"
+    category: "passenger_flow_attribution"
+
+  mode_b_inference_method:
+    id: "ASM-22"
+    parameter_name: "mode_b_inference_method"
+    value: "Reverse-direction symmetry + distance decay"
+    unit: "methodology"
+    type: "string"
+    source: "Problem Brief Sec 5 & Master Spec Sec 8"
+    status: "our assumption"
+    role: "F6 (Flow attribution label)"
+    category: "passenger_flow_attribution"
+
+  # --- Domain 8: Calendar & Holidays (ASM-23) ---
+  holiday_calendar_override:
+    id: "ASM-23"
+    parameter_name: "holiday_calendar_override"
+    value: "2026-10-02"
+    unit: "iso_date"
+    type: "string"
+    source: "Gandhi Jayanti (2026-10-02) mapped to Sunday schedule; observed volume drop to 53,923 boardings (41.8% of Friday)"
+    status: "from data"
+    role: "Calendar Day Type mapping"
+    category: "calendar_and_holidays"

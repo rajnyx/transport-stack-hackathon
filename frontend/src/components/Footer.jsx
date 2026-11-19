@@ -19,14 +19,9 @@ export default function Footer() {
                 Methodology & Accuracy Notes
               </Link>
               <span>·</span>
-              <a
-                href="https://otd.delhi.gov.in"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-[#145C3A] underline"
-              >
-                Delhi Integrated Multi-Modal Transit System Data
-              </a>
+              <Link to="/about" className="hover:text-[#145C3A] underline">
+                Delhi Open Transit Data (GTFS)
+              </Link>
               <span>·</span>
               <Link to="/analytics" className="hover:text-[#145C3A] underline">
                 Crowding Models

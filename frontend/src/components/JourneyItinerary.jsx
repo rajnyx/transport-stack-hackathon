@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { ArrowUpDown } from 'lucide-react';
 import CrowdIndicator from './primitives/CrowdIndicator';
 import { useTranslation } from '../i18n/LanguageContext';
 import { formatTime12h, getLegOccupancy, getSegmentColorClass, getStopCrowdColorClass, CANONICAL_DELHI_25_STOPS } from '../utils/formatters';
@@ -15,6 +16,7 @@ const addMinutes = (timeStr, mins) => {
 export default function JourneyItinerary({
   option,
   departureTime = '18:00',
+  onStopClick,
   className = '',
   style = {},
 }) {
@@ -144,20 +146,20 @@ export default function JourneyItinerary({
             <div className="flex items-center gap-2 text-[10px] text-[#404942]">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-[#145C3A]" />
-                <span className="hidden sm:inline">{lang === 'hi' ? 'कम' : 'Low (<60%)'}</span>
+                <span className="hidden sm:inline">{lang === 'hi' ? 'कम भीड़' : 'Seats Available'}</span>
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-[#E0A51A]" />
-                <span className="hidden sm:inline">{lang === 'hi' ? 'मध्यम' : 'Mod (60-85%)'}</span>
+                <span className="hidden sm:inline">{lang === 'hi' ? 'मध्यम भीड़' : 'Standing Room'}</span>
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-[#C64B4B]" />
-                <span className="hidden sm:inline">{lang === 'hi' ? 'अधिक' : 'High (>85%)'}</span>
+                <span className="hidden sm:inline">{lang === 'hi' ? 'अधिक भीड़' : 'Crowded'}</span>
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{lang === 'hi' ? 'जीपीएस सक्रिय' : 'Real-time GPS active'}</span>
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-800">
+              <span className="w-2 h-2 rounded-full bg-emerald-600" />
+              <span>{lang === 'hi' ? 'समय सारिणी सेवा' : 'Scheduled corridor service'}</span>
             </div>
           </div>
         </div>
@@ -175,7 +177,20 @@ export default function JourneyItinerary({
             const nodeColorClass = getStopCrowdColorClass(stop, index, stops.length, zoneBreakdown, crowdCategory);
 
             return (
-              <div key={stop.id || index} className="flex items-start group">
+              <div
+                key={stop.id || index}
+                onClick={() =>
+                  onStopClick &&
+                  onStopClick({
+                    ...stop,
+                    stop_sequence: index,
+                    stop_id: stop.id,
+                    stop_name: stop.name,
+                  })
+                }
+                className="flex items-start group cursor-pointer hover:bg-emerald-50/50 p-1 rounded-lg transition-colors"
+                title={lang === 'hi' ? 'स्टॉप प्रवाह देखने के लिए क्लिक करें' : 'Click to inspect stop-level passenger flow'}
+              >
                 {/* Spine Column with Dots and Crowd-Colored Segments */}
                 <div className="flex flex-col items-center mr-3 w-4 flex-shrink-0">
                   {/* Node Dot (Filled based on expected crowd at that particular stop) */}
@@ -241,7 +256,7 @@ export default function JourneyItinerary({
             className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 bg-white px-2.5 py-1 rounded-md border border-emerald-200 shadow-xs flex items-center gap-1 transition-colors cursor-pointer"
           >
             <span>{lang === 'hi' ? 'ऊपर / नीचे' : 'Toggle top / end'}</span>
-            <span className="text-[10px]">↕</span>
+            <ArrowUpDown className="w-2.5 h-2.5" />
           </button>
         </div>
       </div>

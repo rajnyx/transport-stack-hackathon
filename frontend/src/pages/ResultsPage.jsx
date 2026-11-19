@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Zap, Users, Star, SlidersHorizontal, MapPin } from 'lucide-react';
-import { planJourney, getRouteCrowdProfile } from '../api';
+import { ArrowLeft, ArrowRight, Zap, Users, Star, SlidersHorizontal, MapPin, Footprints } from 'lucide-react';
+import { planJourney, getRouteCrowdProfile, getRouteFlow } from '../api';
 import TransitRow from '../components/primitives/TransitRow';
 import CompareTable from '../components/primitives/CompareTable';
 import LeafletRouteMap from '../components/LeafletRouteMap';
 import JourneyItinerary from '../components/JourneyItinerary';
 import RouteCrowdingChart from '../components/RouteCrowdingChart';
-import DepartureAdjustmentCard from '../components/DepartureAdjustmentCard';
+import DepartureScrubber from '../components/DepartureScrubber';
+import StopFlowDrawer from '../components/StopFlowDrawer';
 import Skeleton from '../components/primitives/Skeleton';
 import { useTranslation } from '../i18n/LanguageContext';
 import { CANONICAL_DELHI_25_STOPS } from '../utils/formatters';
@@ -45,6 +46,10 @@ export default function ResultsPage() {
   const departureTime = queryParams.get('departure_time') || '18:00';
   const initialPref = queryParams.get('preference') || 'least_crowded';
 
+  const rawOffset = parseInt(queryParams.get('offset') || '0', 10);
+  const initialOffset = [0, 15, 30, 45, 60].includes(rawOffset) ? rawOffset : 0;
+  const [offsetMinutes, setOffsetMinutes] = useState(initialOffset);
+
   const [preference, setPreference] = useState(initialPref);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -54,9 +59,23 @@ export default function ResultsPage() {
   const [routeProfileData, setRouteProfileData] = useState(null);
   const [weekendProfileData, setWeekendProfileData] = useState(null);
 
+  // Stop Flow Drawer State
+  const [flowDrawerOpen, setFlowDrawerOpen] = useState(false);
+  const [selectedStopForFlow, setSelectedStopForFlow] = useState(null);
+  const [flowData, setFlowData] = useState(null);
+  const [flowLoading, setFlowLoading] = useState(false);
+
   useEffect(() => {
     document.title = `${originName} → ${destName} | CrowdWise`;
   }, [originName, destName]);
+
+  // Keep offsetMinutes state in sync with URL if URL changes externally
+  useEffect(() => {
+    const currentOffsetInUrl = parseInt(queryParams.get('offset') || '0', 10);
+    if ([0, 15, 30, 45, 60].includes(currentOffsetInUrl) && currentOffsetInUrl !== offsetMinutes) {
+      setOffsetMinutes(currentOffsetInUrl);
+    }
+  }, [location.search]);
 
   const fetchPlan = () => {
     setLoading(true);
@@ -67,6 +86,7 @@ export default function ResultsPage() {
       destId,
       departureTime,
       preference,
+      offsetMinutes,
     })
       .then((res) => {
         setPlanData(res.data);
@@ -81,19 +101,19 @@ export default function ResultsPage() {
 
   useEffect(() => {
     fetchPlan();
-  }, [originId, destId, departureTime, preference]);
+  }, [originId, destId, departureTime, preference, offsetMinutes]);
 
   const rawOptions = planData?.options || [];
 
-  // If API returns options, dynamically map their scheduled departures around user's chosen time
-  const options = rawOptions.length > 0 ? rawOptions.map((opt, idx) => {
+  // If API returns options, dynamically map their scheduled departures around shifted time
+  const options = rawOptions.map((opt, idx) => {
     let dep;
     if (opt.scheduled_departure && opt.scheduled_departure.slice(0, 5) >= departureTime) {
       dep = opt.scheduled_departure.slice(0, 5);
     } else if (opt.wait_time_min !== undefined && opt.wait_time_min !== null) {
-      dep = addMinutes(departureTime, Math.round(opt.wait_time_min));
+      dep = addMinutes(departureTime, Math.round(opt.wait_time_min) + offsetMinutes);
     } else {
-      dep = addMinutes(departureTime, idx * 5);
+      dep = addMinutes(departureTime, idx * 5 + offsetMinutes);
     }
     const dur = Math.round(opt.total_duration_minutes ?? opt.total_time_min ?? 40);
     const arr = opt.scheduled_arrival && opt.scheduled_arrival.slice(0, 5) > dep
@@ -105,76 +125,9 @@ export default function ResultsPage() {
       scheduled_arrival: arr,
       total_time_min: dur,
     };
-  }) : [
-    // Realistic fallback options centered around the user's chosen departureTime
-    {
-      route_id: '73UP',
-      route_short_name: '73UP',
-      route_long_name: 'Anand Vihar ISBT to Shivaji Stadium Terminal',
-      scheduled_departure: addMinutes(departureTime, 3),
-      scheduled_arrival: addMinutes(departureTime, 43),
-      total_time_min: 40,
-      travel_time_min: 37,
-      wait_time_min: 3,
-      walk_time_min: 0,
-      distance_km: 13.4,
-      stops_count: 25,
-      crowding_category: 'high',
-      crowding: { category: 'high', crowding_label: 'Very crowded', journey_rci: 85 },
-      confidence: 'high',
-    },
-    {
-      route_id: '85DOWN',
-      route_short_name: '85DOWN',
-      route_long_name: 'Shivaji Stadium to Anand Vihar ISBT',
-      scheduled_departure: addMinutes(departureTime, 7),
-      scheduled_arrival: addMinutes(departureTime, 57),
-      total_time_min: 50,
-      travel_time_min: 43,
-      wait_time_min: 7,
-      walk_time_min: 0,
-      distance_km: 12.3,
-      stops_count: 23,
-      crowding_category: 'low',
-      crowding: { category: 'low', crowding_label: 'Not crowded', journey_rci: 38 },
-      confidence: 'high',
-    },
-    {
-      route_id: '764',
-      route_short_name: '764',
-      route_long_name: 'Najafgarh to Connaught Place',
-      scheduled_departure: addMinutes(departureTime, 12),
-      scheduled_arrival: addMinutes(departureTime, 58),
-      total_time_min: 46,
-      travel_time_min: 34,
-      wait_time_min: 12,
-      walk_time_min: 0,
-      distance_km: 13.8,
-      stops_count: 27,
-      crowding_category: 'moderate',
-      crowding: { category: 'moderate', crowding_label: 'Fairly crowded', journey_rci: 58 },
-      confidence: 'medium',
-    },
-    {
-      route_id: '534',
-      route_short_name: '534',
-      route_long_name: 'Mori Gate to Nehru Place',
-      scheduled_departure: addMinutes(departureTime, 18),
-      scheduled_arrival: addMinutes(departureTime, 70),
-      total_time_min: 52,
-      travel_time_min: 34,
-      wait_time_min: 18,
-      walk_time_min: 0,
-      distance_km: 12.8,
-      stops_count: 25,
-      crowding_category: 'high',
-      crowding: { category: 'high', crowding_label: 'Very crowded', journey_rci: 82 },
-      confidence: 'high',
-    },
-  ];
+  });
 
-  const selectedOption = options[selectedOptionIndex] || options[0];
-  const fastestOption = planData?.fastest_baseline || options[0];
+  const selectedOption = options[selectedOptionIndex] || options[0] || null;
 
   useEffect(() => {
     const routeIdentifier = selectedOption?.route_short_name || selectedOption?.route_id;
@@ -193,6 +146,30 @@ export default function ResultsPage() {
         .catch(() => {});
     }
   }, [selectedOption?.route_id, selectedOption?.route_short_name]);
+
+  // Fetch Stop Flow data when drawer is opened for the active route
+  useEffect(() => {
+    if (flowDrawerOpen && selectedOption) {
+      const routeIdentifier = selectedOption.route_id || selectedOption.route_short_name || '433UP';
+      const dir = selectedOption.direction_id === 1 ? 'DOWN' : 'UP';
+      const depHour = parseInt((selectedOption.scheduled_departure || departureTime).slice(0, 2), 10) || 8;
+
+      setFlowLoading(true);
+      getRouteFlow(routeIdentifier, { direction: dir, hour: depHour, dayType: 'weekday' })
+        .then((res) => {
+          if (res?.data) setFlowData(res.data);
+          setFlowLoading(false);
+        })
+        .catch(() => {
+          setFlowLoading(false);
+        });
+    }
+  }, [flowDrawerOpen, selectedOption?.route_id]);
+
+  const handleStopClick = (stop) => {
+    setSelectedStopForFlow(stop);
+    setFlowDrawerOpen(true);
+  };
 
   const leftColRef = useRef(null);
   const mapCardRef = useRef(null);
@@ -240,6 +217,15 @@ export default function ResultsPage() {
     navigate(`/results?${newParams.toString()}`, { replace: true });
   };
 
+  const handleOffsetChange = (newOffset) => {
+    setOffsetMinutes(newOffset);
+    const newParams = new URLSearchParams(location.search);
+    newParams.set('offset', String(newOffset));
+    navigate(`/results?${newParams.toString()}`, { replace: true });
+  };
+
+  const departureHour = parseInt(departureTime.slice(0, 2), 10) || 8;
+
   return (
     <div className="py-2 space-y-5 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Top Header Row matching Stitch Journey Results */}
@@ -267,7 +253,7 @@ export default function ResultsPage() {
         </div>
 
         {/* Right: [Fastest] [Balanced] [Least crowded] & Compare top 3 */}
-        <div className="flex items-center gap-3 self-end sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 self-start sm:self-auto">
           {/* Segmented Filter Pills */}
           <div className="bg-[#e9f7ee] p-1 rounded-xl flex items-center gap-1 border border-[#d8e6dd]">
             {[
@@ -291,13 +277,15 @@ export default function ResultsPage() {
           </div>
 
           {/* Compare Button */}
-          <button
-            type="button"
-            onClick={() => setShowCompare(!showCompare)}
-            className="text-xs text-[#136c46] hover:text-[#004327] font-semibold hover:underline px-2.5 py-1.5 rounded-lg border border-[#d8e6dd] bg-white transition-colors cursor-pointer"
-          >
-            {showCompare ? 'Close compare' : 'Compare top 3'}
-          </button>
+          {options.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setShowCompare(!showCompare)}
+              className="text-xs text-[#136c46] hover:text-[#004327] font-semibold hover:underline px-2.5 py-1.5 rounded-lg border border-[#d8e6dd] bg-white transition-colors cursor-pointer"
+            >
+              {showCompare ? 'Close compare' : 'Compare top 3'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -323,10 +311,71 @@ export default function ResultsPage() {
           </div>
           <div className="lg:col-span-7 h-[420px] bg-[#e9f7ee]/50 rounded-xl animate-pulse" />
         </div>
+      ) : options.length === 0 ? (
+        <div className="max-w-xl mx-auto py-12 text-center space-y-4">
+          {/* Departure Scrubber available even if no direct option at this exact offset */}
+          <DepartureScrubber
+            baseTime={departureTime}
+            selectedOffset={offsetMinutes}
+            onOffsetChange={handleOffsetChange}
+            departureTips={planData?.departure_tips || planData?.tips || []}
+            loading={loading}
+          />
+          <div className="bg-white border border-[#d8e6dd] rounded-2xl p-8 space-y-3">
+            <p className="text-sm font-semibold text-[#121e19]">
+              {t('results.noRoutes', 'No direct bus route found between these stops.')}
+            </p>
+            <Link
+              to="/"
+              className="inline-block px-4 py-2 bg-[#004327] text-white rounded-xl text-xs font-semibold hover:bg-[#00341e] transition-colors"
+            >
+              {t('results.back', 'Back to planner')}
+            </Link>
+          </div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* LEFT COLUMN: Options Count + Transit Cards + Route Crowding Chart + Note */}
+          {/* LEFT COLUMN: Scrubber + Options Count + Boarding Advice + Transit Cards + Route Crowding Chart */}
           <div ref={leftColRef} className="lg:col-span-5 flex flex-col space-y-4">
+            {/* F5 Departure Time Scrubber */}
+            <div className="flex-shrink-0">
+              <DepartureScrubber
+                baseTime={departureTime}
+                selectedOffset={offsetMinutes}
+                onOffsetChange={handleOffsetChange}
+                departureTips={planData?.departure_tips || planData?.tips || []}
+                loading={loading}
+              />
+            </div>
+
+            {/* F9 Boarding Advice Callout Banner */}
+            {selectedOption?.boarding_advice?.show_advice === true && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-3 shadow-xs flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 text-emerald-800">
+                  <Footprints className="w-4 h-4" />
+                </div>
+                <div className="text-xs text-[#121e19] flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="font-bold text-[#004327]">
+                      {t('boardingAdvice.title', 'Alternative Boarding Advice')}
+                    </span>
+                    <span className="bg-emerald-200 text-emerald-900 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                      {Math.round(selectedOption.boarding_advice.walk_distance_m || 300)}m walk
+                    </span>
+                  </div>
+                  <p className="text-[#2d3a33] leading-relaxed">
+                    {selectedOption.boarding_advice.message || (
+                      t('boardingAdvice.walkMessage', {
+                        distance: Math.round(selectedOption.boarding_advice.walk_distance_m || 300),
+                        stopName: selectedOption.boarding_advice.earlier_stop_name || 'Earlier stop',
+                        crowdLevel: selectedOption.boarding_advice.earlier_crowd_level || 'Seats Available',
+                      })
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Header: "N options found" | "Ranked for: [Preference]" */}
             <div className="flex items-center justify-between text-xs text-[#707971] px-1 flex-shrink-0">
               <span className="font-bold text-[#121e19]">
@@ -359,14 +408,6 @@ export default function ResultsPage() {
                 selectedOption={selectedOption}
                 profileData={routeProfileData}
                 weekendProfileData={weekendProfileData}
-                departureTime={departureTime}
-              />
-            </div>
-
-            {/* RECOMMENDED DEPARTURE ADJUSTMENT CARD (The Note - Natural Snug Height) */}
-            <div className="flex-shrink-0">
-              <DepartureAdjustmentCard
-                option={selectedOption}
                 departureTime={departureTime}
               />
             </div>
@@ -409,12 +450,26 @@ export default function ResultsPage() {
               <JourneyItinerary
                 option={selectedOption}
                 departureTime={departureTime}
+                onStopClick={handleStopClick}
                 style={itineraryHeight ? { height: `${itineraryHeight}px` } : undefined}
               />
             </div>
           </div>
         </div>
       )}
+
+      {/* F6 Stop Flow Drawer */}
+      <StopFlowDrawer
+        isOpen={flowDrawerOpen}
+        onClose={() => setFlowDrawerOpen(false)}
+        routeId={selectedOption?.route_short_name || selectedOption?.route_id || '433UP'}
+        selectedStop={selectedStopForFlow}
+        flowData={flowData}
+        onSelectStop={(stop) => setSelectedStopForFlow(stop)}
+        hour={departureHour}
+        dayType="weekday"
+        loading={flowLoading}
+      />
     </div>
   );
 }

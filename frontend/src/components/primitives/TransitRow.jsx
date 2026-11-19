@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, HelpCircle, ChevronRight, BarChart2, Database, AlertCircle } from 'lucide-react';
+import { ArrowRight, HelpCircle, ChevronRight, BarChart2, Database, AlertCircle, Footprints } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import RouteBadge from './RouteBadge';
 import CrowdIndicator from './CrowdIndicator';
@@ -14,7 +14,7 @@ export default function TransitRow({
   onSelect,
   className = '',
 }) {
-  const { lang } = useTranslation();
+  const { t, lang } = useTranslation();
 
   const totalMin = Math.round(
     option.timing?.total_duration_min ??
@@ -40,7 +40,12 @@ export default function TransitRow({
   const distKm = option.distance_km ?? option.timing?.distance_km ?? 13.4;
   const stopsCount = option.stops_count ?? option.stops?.length ?? 25;
 
-  const isThinData = option.confidence === 'none' || option.thin_data;
+  const isAc = option.vehicle_class === 'AC' || option.is_ac === true;
+  const vehicleClassLabel = isAc ? t('vehicleClass.ac', 'AC Bus') : t('vehicleClass.nonAc', 'Standard Bus');
+
+  const hasBoardingAdvice = option.boarding_advice && option.boarding_advice.show_advice === true;
+
+  const isThinData = option.confidence === 'none' || option.confidence === 'thin' || option.thin_data;
 
   const crowdOrigin = isThinData
     ? 'unknown'
@@ -77,21 +82,34 @@ export default function TransitRow({
           <span className="font-bold text-[#145c3a]">
             {prefTag}
           </span>
+          {hasBoardingAdvice && (
+            <span className="text-[10px] text-emerald-800 bg-emerald-100 font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+              <Footprints className="w-3 h-3" />
+              {t('boardingAdvice.walkBadge', 'Walking Alternative Available')}
+            </span>
+          )}
         </div>
 
         <div className="p-4 space-y-3.5">
           {/* Row 1: Badge, Leaves time, Distance & Duration */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-2.5">
-              <span className="bg-[#004327] text-white font-bold text-xs px-2.5 py-1 rounded-md shadow-xs">
-                {routeNum}
-              </span>
+              <div className="flex flex-col gap-1">
+                <span className="bg-[#004327] text-white font-bold text-xs px-2.5 py-1 rounded-md shadow-xs">
+                  {routeNum}
+                </span>
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded text-center ${
+                  isAc ? 'bg-sky-100 text-sky-800' : 'bg-stone-100 text-stone-700'
+                }`}>
+                  {isAc ? 'AC' : 'Non-AC'}
+                </span>
+              </div>
               <div>
                 <p className="text-xs font-bold text-[#121e19]">
                   {lang === 'hi' ? `प्रस्थान ${depTime} · निर्धारित` : `Leaves ${depTime} · scheduled`}
                 </p>
                 <p className="text-[11px] text-[#404942] mt-0.5">
-                  {distKm} km · {stopsCount} stops · Direct
+                  {distKm} km · {stopsCount} stops · {vehicleClassLabel} · Direct
                 </p>
               </div>
             </div>
@@ -107,7 +125,7 @@ export default function TransitRow({
           </div>
 
           {/* Row 2: At your stop vs Busiest stretch */}
-          <div className="grid grid-cols-2 gap-2 p-2.5 rounded-lg bg-[#e9f7ee]/50 border border-[#d8e6dd]/60">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-lg bg-[#e9f7ee]/50 border border-[#d8e6dd]/60">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-medium text-[#404942] w-20">At your stop</span>
               {isThinData ? (
@@ -146,7 +164,14 @@ export default function TransitRow({
           <div className="grid grid-cols-2 gap-2 text-[10px] text-[#404942] pt-2 border-t border-[#d8e6dd]">
             <div className="flex items-center gap-1.5">
               <Database className="w-3 h-3 text-[#136c46]" />
-              <span>{formatConfidence(option.confidence)}</span>
+              <span className="font-medium text-[#121e19]">
+                {option.confidence_text || formatConfidence(option.confidence, option.sample_ticket_count)}
+                {option.sample_ticket_count !== undefined && (
+                  <span className="text-[#707971] ml-1">
+                    ({option.sample_ticket_count} {lang === 'hi' ? 'टिकट' : 'tickets'})
+                  </span>
+                )}
+              </span>
             </div>
             <div className="text-right">
               <span>Corridor: {stopsCount} stops · {distKm} km</span>
@@ -179,26 +204,45 @@ export default function TransitRow({
       <div className="flex items-center justify-between gap-3">
         {/* Left: Badge, details, crowd */}
         <div className="space-y-1.5 flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="bg-[#27332d] text-white font-bold text-xs px-2.5 py-0.5 rounded">
               {routeNum}
+            </span>
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+              isAc ? 'bg-sky-100 text-sky-800' : 'bg-stone-100 text-stone-700'
+            }`}>
+              {isAc ? 'AC' : 'Non-AC'}
             </span>
             <span className="text-xs font-bold text-[#121e19]">
               Leaves {depTime} · scheduled
             </span>
+            {hasBoardingAdvice && (
+              <span className="text-[10px] text-emerald-800 bg-emerald-100 font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                <Footprints className="w-2.5 h-2.5" />
+                Walk
+              </span>
+            )}
           </div>
 
           <div className="text-[11px] text-[#404942]">
-            {distKm} km · {stopsCount} stops · Direct
+            {distKm} km · {stopsCount} stops · {vehicleClassLabel} · Direct
           </div>
 
-          <div className="flex items-center gap-2 pt-0.5">
-            <span className="text-[11px] text-[#707971]">At your stop:</span>
-            {isThinData ? (
-              <span className="text-xs text-[#707971] bg-[#d8e6dd] px-1.5 py-0.5 rounded">Not enough data</span>
-            ) : (
-              <CrowdIndicator category={crowdOrigin} size="sm" />
-            )}
+          <div className="flex items-center gap-3 pt-0.5 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-[#707971]">At your stop:</span>
+              {isThinData ? (
+                <span className="text-xs text-[#707971] bg-[#d8e6dd] px-1.5 py-0.5 rounded">Not enough data</span>
+              ) : (
+                <CrowdIndicator category={crowdOrigin} size="sm" />
+              )}
+            </div>
+            <div className="flex items-center gap-1 text-[11px] text-[#707971]">
+              <Database className="w-3 h-3 text-[#136c46]" />
+              <span>
+                {option.confidence_text || formatConfidence(option.confidence, option.sample_ticket_count)}
+              </span>
+            </div>
           </div>
         </div>
 

@@ -13,6 +13,7 @@ def api_response(
     start_time: Optional[float] = None,
     warning: Optional[Union[str, List[str]]] = None,
     degraded_mode: Optional[bool] = None,
+    extra_meta: Optional[Dict[str, Any]] = None,
 ):
     """Generates consistent API envelope for all CrowdWise endpoints.
     
@@ -69,6 +70,9 @@ def api_response(
         meta["warning"] = warning
         if degraded_mode is None:
             meta["degraded_mode"] = True
+
+    if extra_meta and isinstance(extra_meta, dict):
+        meta.update(extra_meta)
 
     envelope = {
         "ok": error is None and status_code < 400,

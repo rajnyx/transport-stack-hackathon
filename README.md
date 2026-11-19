@@ -115,6 +115,13 @@ python scripts/verify_full_website.py
 ### 3. Start the Application
 **Option A: Unified Full-Stack WSGI Server (Flask serves compiled React app)**
 ```bash
+# 1. Build the production React bundle (required before running WSGI server)
+cd frontend
+npm install
+npm run build
+cd ..
+
+# 2. Run unified full-stack WSGI server
 python wsgi.py
 ```
 Open **[http://localhost:5000](http://localhost:5000)** in your browser!
@@ -131,9 +138,31 @@ npm run dev
 ```
 Open **[http://localhost:3000](http://localhost:3000)** in your browser!
 
+### Pinned Dependencies Reference
+| Backend (Python 3.10+) | Pinned Version | Frontend (Node 18+) | Pinned Version |
+| :--- | :--- | :--- | :--- |
+| `flask` | `3.0.3` | `react` | `18.3.1` |
+| `flask-cors` | `4.0.1` | `react-dom` | `18.3.1` |
+| `sqlalchemy` | `2.0.36` | `react-router-dom` | `6.28.0` |
+| `pandas` | `2.2.3` | `leaflet` | `1.9.4` |
+| `numpy` | `1.26.4` | `react-leaflet` | `4.2.1` |
+| `scikit-learn` | `1.5.2` | `recharts` | `2.13.3` |
+| `scipy` | `1.14.1` | `lucide-react` | `0.460.0` |
+| `joblib` | `1.4.2` | `vite` | `5.4.21` |
+| `pyarrow` | `17.0.0` | `tailwindcss` | `4.0.0` |
+| `pyyaml` | `6.0.2` | `i18next` | `23.16.8` |
+| `pytest` | `8.3.3` | `gunicorn` | `23.0.0` |
+
 ---
 
 ## 4. Idempotent Real-Data Rebuild Pipeline
+
+> **Important — Raw Data Placement & Isolation**:
+> Organizer source datasets must be placed into the `data/raw/` directory:
+> - Electronic Ticketing Machine (ETM) telemetry: `data/raw/October-Delhi.csv` (or `data/raw/organizer/October-Delhi.csv`)
+> - Official Delhi GTFS static archive: `data/raw/gtfs/`
+> 
+> **DO NOT COMMIT RAW DATA**: `data/raw/` is strictly ignored by `.gitignore` to prevent committing massive raw telemetry records to git. The database and model weights are materialized reproducibly using the automated scripts below.
 
 To re-ingest, re-clean, and retrain models from the raw organizer files in a single reproducible step:
 ```bash
@@ -167,26 +196,44 @@ python scripts/reconcile_raw_data.py
 
 ## 6. REST API Endpoint Catalog
 
-All responses follow the standard JSON envelope: `{"ok": true, "data": ..., "error": null, "meta": {"data_mode": "organizer", "active_tier": "organizer"}}`.
+All responses follow the standard JSON envelope: `{"ok": true, "data": ..., "error": null, "meta": {"data_mode": "organizer", "active_tier": "organizer"}}`. Dual prefixes `/api` and `/api/v1` are supported across all routes.
 
+### System & Metadata
 - `GET /api/health` — System status, database connection, active data tier, and model status.
 - `GET /api/meta` — Provenance disclosures, dataset roles, date range (Oct 1–31, 2026), cleaning funnel, and model metadata.
 - `GET /api/data-quality` — Cleaning funnel accounting, route match rates, temporal anomalies, and assumption disclosures.
+- `GET /api/analytics/assumptions` — Formal assumptions registry (R1, ASM-01 through ASM-23) with owner and status tracking.
+- `GET /api/validation/sanity` — Live transit domain sanity check scorecard.
+- `GET /api/model/metrics` — Chronological test set evaluation metrics and baseline comparisons.
+
+### Transit Stops & Corridors
 - `GET /api/stops/search?q=Anand&limit=8` — Spatial and fuzzy Levenshtein stop search across 6,862 stops.
 - `GET /api/routes` — Paginated list of Delhi bus routes with pattern counts.
 - `GET /api/routes/<route_id>` — Detailed corridor layout, ordered stops, and cumulative distances.
-- `GET /api/crowd/profile/<route_id>?day_type=WEEKDAY` — 24-hour diurnal profile and 8-zone corridor heat matrix.
+- `GET /api/crowd/profile/<route_id>?day_type=WEEKDAY` — 24-hour diurnal profile and 8-zone corridor heat matrix (F1/F2).
+- `GET /api/routes/<route_id>/flow?direction=UP&hour=8&day_type=weekday` — Stop-level boardings, alightings, running load, and flow conservation (F6).
+- `GET /api/routes/<route_id>/export?format=csv|json&day_type=weekday&hour=8` — Corridor crowd estimates export with `# Metadata:` header block (F7).
+
+### Journey Planning & Departure Scrubber
 - `GET /api/journey/plan?origin_id=...&dest_id=...&departure_time=18:00&preference=balanced` — Direct route candidates scored across travel time and crowdedness.
+- `GET /api/journey/plan?origin_id=...&dest_id=...&offset_minutes=15` — Departure time scrubber returning adjusted crowd levels and alternative boarding advice (F5, F9).
+
+### Analytics, Action Sheet & Network Maps
 - `GET /api/analytics/summary` — Network-wide metrics, peak ratios, top crowded corridors, and real model metrics.
 - `GET /api/analytics/daily-volume` — 31-day ticketing volume timeseries for October 2026.
-- `GET /api/model/metrics` — Chronological test set evaluation metrics and baseline comparisons.
-- `GET /api/validation/sanity` — Live transit domain sanity check scorecard.
+- `GET /api/analytics/sensitivity?day_type=WEEKDAY&limit=10` — 4-scenario unrecorded passenger sensitivity matrix (0%, 10%, 20%, 30%) for top overloaded routes (F3).
+- `GET /api/analytics/operator-action-sheet?day_type=weekday&hour_start=6&hour_end=22&min_confidence=medium` — Deficit-ranked corridor scheduling table with multi-scenario extra trips, glossary, and disclaimer (F4).
+- `GET /api/analytics/corridors-map?hour=8&day_type=weekday&limit=50` — Capped top-50 corridor polylines colored by crowd level with OSM coordinates (F8).
+- `GET /api/analytics/export?format=csv|json&day_type=weekday&hour=8` — Network crowd estimates export with `# Metadata:` provenance header block (F7).
 
 ---
 
 ## 7. Submission Documentation Pack
 
 - [Detailed Submission Proposal](docs/PROPOSAL.md) — 2-page challenge proposal addressing real-world edge cases.
+- [Feature Verification & Reconciliation Report](docs/FEATURE_REPORT.md) — Full feature verification matrix, raw data reconciliation table, and test logs.
+- [Transit Demand & Crowdedness Methodology](docs/METHODOLOGY.md) — Detailed mass conservation recurrence, tri-modal pipeline, and deficit math.
+- [Feature-to-Data Map & Assumptions](docs/FEATURE_DATA_MAP.md) — Grounding matrix, non-build decisions, and 23 registered assumptions.
 - [Technical Architecture Note](docs/TECHNICAL_NOTE.md) — Mathematical formulations, ML architecture, and sanity checks.
 - [Video Demo Script & Presentation Deck](docs/DEMO_SCRIPT.md) — 3-minute video walkthrough script and 6-slide deck outline.
 - [Civic UX & Design System](docs/DESIGN_SYSTEM.md) — Color-blind safe tokens, high-contrast palette, and daylight typography.

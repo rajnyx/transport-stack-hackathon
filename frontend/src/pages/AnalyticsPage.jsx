@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import {
   AreaChart,
   Area,
@@ -12,13 +12,32 @@ import {
   Legend,
   ReferenceArea,
 } from 'recharts';
-import { ArrowDown, Users, BarChart2, ShieldCheck, Database, Info, X } from 'lucide-react';
+import {
+  ArrowDown,
+  Users,
+  BarChart2,
+  ShieldCheck,
+  Database,
+  Info,
+  X,
+  Download,
+  Activity,
+  Layers,
+  MapPin,
+} from 'lucide-react';
 import { getAnalyticsSummary } from '../api';
 import CrowdIndicator from '../components/primitives/CrowdIndicator';
+import SegmentedControl from '../components/primitives/SegmentedControl';
+import OperatorActionSheet from '../components/OperatorActionSheet';
 import { useTranslation } from '../i18n/LanguageContext';
 
+const CrowdingMap = lazy(() => import('../components/CrowdingMap'));
+
 export default function AnalyticsPage() {
-  const { lang } = useTranslation();
+  const { t, lang } = useTranslation();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [summaryData, setSummaryData] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
   const [selectedRoutes, setSelectedRoutes] = useState(['73UP', '534', '764']);
   const [activeProfileRoute, setActiveProfileRoute] = useState('73UP');
   const [show24hModal, setShow24hModal] = useState(false);
@@ -27,6 +46,15 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     document.title = 'Analytics | CrowdWise';
+    setLoadingSummary(true);
+    getAnalyticsSummary()
+      .then((res) => {
+        if (res && res.data) {
+          setSummaryData(res.data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingSummary(false));
   }, []);
 
   // Diurnal dataset matching Stitch Screenshot 3
@@ -155,9 +183,9 @@ export default function AnalyticsPage() {
 
   return (
     <div className="py-2 space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      {/* Title & Scope matching Stitch Screenshot 3 */}
-      <div className="space-y-1.5 border-b border-[#d8e6dd] pb-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Title & Scope matching Stitch Screenshot 3 + F7 Network Export */}
+      <div className="space-y-3 border-b border-[#d8e6dd] pb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#004327] tracking-tight">
               {lang === 'hi' ? 'एनालिटिक्स और नेटवर्क अंतर्दृष्टि' : 'Analytics & Network Insights'}
@@ -168,13 +196,70 @@ export default function AnalyticsPage() {
                 : 'Crowd patterns across routes in Delhi ticketing data. Based on past ticket data, not live vehicle telemetry.'}
             </p>
           </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white shadow-xs border border-[#d8e6dd] text-xs font-semibold text-[#136c46]">
-            <span className="w-2 h-2 rounded-full bg-[#136c46] animate-pulse"></span>
-            <span>2.56M Historical ETM Records Indexed</span>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Network CSV / JSON Export Buttons (F7) */}
+            <div className="inline-flex rounded-lg border border-slate-300 p-0.5 bg-white shadow-2xs">
+              <a
+                href="/api/analytics/export?format=csv"
+                download="network_crowd_estimates.csv"
+                className="px-3 py-1.5 text-xs font-semibold text-navy hover:bg-slate-50 rounded-md inline-flex items-center gap-1.5 transition-colors"
+                title={lang === 'hi' ? 'नेटवर्क सीएसवी निर्यात करें' : 'Export Network CSV with metadata block'}
+              >
+                <Download className="w-3.5 h-3.5 text-teal" />
+                <span>{t('export.csv', 'Export CSV')}</span>
+              </a>
+              <a
+                href="/api/analytics/export?format=json"
+                download="network_crowd_estimates.json"
+                className="px-3 py-1.5 text-xs font-semibold text-navy hover:bg-slate-50 rounded-md inline-flex items-center gap-1.5 transition-colors"
+                title={lang === 'hi' ? 'नेटवर्क जेसन निर्यात करें' : 'Export Network JSON'}
+              >
+                <Download className="w-3.5 h-3.5 text-teal" />
+                <span>{t('export.json', 'Export JSON')}</span>
+              </a>
+            </div>
+
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white shadow-xs border border-[#d8e6dd] text-xs font-semibold text-[#136c46]">
+              <span className="w-2 h-2 rounded-full bg-[#136c46] animate-pulse"></span>
+              <span>2.56M Historical ETM Records Indexed</span>
+            </div>
           </div>
+        </div>
+
+        {/* 3-Tab Navigation Bar */}
+        <div className="pt-2">
+          <SegmentedControl
+            options={[
+              { value: 'overview', label: t('analytics.tabOverview', 'Network Overview') },
+              { value: 'actionSheet', label: t('analytics.tabActionSheet', 'Operator Action Sheet') },
+              { value: 'map', label: t('analytics.tabMap', 'Corridors Crowding Map') },
+            ]}
+            value={activeTab}
+            onChange={setActiveTab}
+            className="max-w-xl"
+          />
         </div>
       </div>
 
+      {/* Tab Panels */}
+      {activeTab === 'actionSheet' && <OperatorActionSheet />}
+
+      {activeTab === 'map' && (
+        <Suspense
+          fallback={
+            <div className="h-[560px] flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-panel animate-pulse text-slate-500 text-xs">
+              <div className="w-6 h-6 border-2 border-teal border-t-transparent rounded-full animate-spin mb-2" />
+              <span>{t('crowdingMap.loadingMap', 'Loading corridor polylines...')}</span>
+            </div>
+          }
+        >
+          <CrowdingMap />
+        </Suspense>
+      )}
+
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
       {/* Section A: 4 Metric Cards in a single white card with hairline vertical dividers */}
       <div className="bg-white border border-[#d8e6dd] rounded-xl shadow-sm overflow-hidden">
         <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#d8e6dd]">
@@ -183,7 +268,7 @@ export default function AnalyticsPage() {
               ROUTES WITH ENOUGH DATA
             </span>
             <span className="text-3xl font-extrabold text-[#004327] block mt-1">
-              312
+              {summaryData?.total_routes || '312'}
             </span>
             <span className="text-xs text-[#404942] block mt-0.5">
               of active DTC & Cluster routes
@@ -686,6 +771,8 @@ export default function AnalyticsPage() {
           </table>
         </div>
       </div>
+      </div>
+      )}
 
       {/* Section G: 24h Route Profile Modal */}
       {show24hModal && (

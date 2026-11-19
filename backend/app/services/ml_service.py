@@ -80,6 +80,41 @@ class MLService:
             logger.warning(f"MLService: Error loading ML artifacts: {e}")
             self.is_loaded = False
 
+    def _enrich_prediction(
+        self,
+        pred_dict: Dict[str, Any],
+        route_id: str,
+        direction_id: int,
+        zone_id: int,
+        day_type: str,
+        hour: int,
+    ) -> Dict[str, Any]:
+        """Enriches prediction dictionary with sample_ticket_count and verbal confidence_text (Brief R2 F1)."""
+        try:
+            from app.services.crowd_service import CrowdService
+            ticket_count = CrowdService.query_cell_ticket_count(
+                route_id=str(route_id),
+                direction_id=int(direction_id),
+                day_type=str(day_type),
+                hour=int(hour),
+                zone_id=int(zone_id),
+            )
+            pred_dict["sample_ticket_count"] = int(ticket_count or 0)
+            if ticket_count > 0:
+                _, conf_text = CrowdService.get_confidence(ticket_count)
+                pred_dict["confidence_text"] = conf_text
+            else:
+                conf = pred_dict.get("confidence", "low")
+                pred_dict["confidence_text"] = CrowdService.CONFIDENCE_TEXTS.get(
+                    conf, "Based on little data"
+                )
+        except Exception as e:
+            logger.debug(f"MLService: Error enriching prediction: {e}")
+            pred_dict.setdefault("sample_ticket_count", 0)
+            pred_dict.setdefault("confidence_text", "Based on little data")
+
+        return pred_dict
+
     def predict_crowd(
         self,
         route_id: str,
@@ -87,6 +122,7 @@ class MLService:
         zone_id: int,
         day_type: str = "WEEKDAY",
         hour: int = 18,
+        enrich: bool = True,
     ) -> Dict[str, Any]:
         """Returns estimated crowdedness, RCI, category, label, and confidence for a route cell.
         Executes a 3-tier fallback: Random Forest -> Stratified Baseline Regressor -> Diurnal Heuristic.
@@ -118,7 +154,7 @@ class MLService:
                     category = "High" if rci_val >= 75.0 else ("Moderate" if rci_val >= 40.0 else "Low")
                     label = "Crowded" if rci_val >= 75.0 else ("Standing Room" if rci_val >= 40.0 else "Seats Available")
 
-                return {
+                res = {
                     "route_id": str(route_id),
                     "direction_id": int(direction_id),
                     "zone_id": int(zone_id),
@@ -138,6 +174,7 @@ class MLService:
                     },
                     "model_version": self.metadata.get("version", "1.0.0"),
                 }
+                return self._enrich_prediction(res, route_id, direction_id, zone_id, day_type, hour) if enrich else res
             except Exception as e:
                 logger.warning(f"MLService: Random Forest inference failed ({e}), attempting baseline fallback.")
 
@@ -164,7 +201,7 @@ class MLService:
                     category = "High" if rci_val >= 75.0 else ("Moderate" if rci_val >= 40.0 else "Low")
                     label = "Crowded" if rci_val >= 75.0 else ("Standing Room" if rci_val >= 40.0 else "Seats Available")
 
-                return {
+                res = {
                     "route_id": str(route_id),
                     "direction_id": int(direction_id),
                     "zone_id": int(zone_id),
@@ -184,6 +221,7 @@ class MLService:
                     },
                     "model_version": "baseline_regressor",
                 }
+                return self._enrich_prediction(res, route_id, direction_id, zone_id, day_type, hour) if enrich else res
             except Exception as e:
                 logger.warning(f"MLService: Baseline inference failed ({e}), attempting heuristic fallback.")
 
@@ -198,7 +236,7 @@ class MLService:
         category = "High" if rci >= 75.0 else ("Moderate" if rci >= 40.0 else "Low")
         label = "Crowded" if rci >= 75.0 else ("Standing Room" if rci >= 40.0 else "Seats Available")
 
-        return {
+        res = {
             "route_id": str(route_id),
             "direction_id": int(direction_id),
             "zone_id": int(zone_id),
@@ -218,6 +256,7 @@ class MLService:
             },
             "model_version": "fallback_heuristic",
         }
+        return self._enrich_prediction(res, route_id, direction_id, zone_id, day_type, hour) if enrich else res
 
     def predict_journey_zones(
         self,
@@ -274,7 +313,7 @@ class MLService:
         for z in range(8):
             zone_row = {"zone_id": z, "hours": []}
             for h in range(24):
-                pred = self.predict_crowd(route_id, direction_id, z, day_type, h)
+                pred = self.predict_crowd(route_id, direction_id, z, day_type, h, enrich=False)
                 zone_row["hours"].append({
                     "hour": h,
                     "load": pred["load"],

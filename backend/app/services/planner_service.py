@@ -80,6 +80,7 @@ class JourneyPlannerService:
         origin_lon: Optional[float] = None,
         dest_lat: Optional[float] = None,
         dest_lon: Optional[float] = None,
+        offset_minutes: int = 0,
     ) -> Dict[str, Any]:
         """Finds direct route options between origin and destination, applies detour filtering,
         estimates travel & wait times, scores them, and returns up to 8 deduplicated ranked alternatives.
@@ -144,6 +145,7 @@ class JourneyPlannerService:
                     day_type=resolved_day_type,
                     preference=preference,
                     hour=hour,
+                    offset_minutes=offset_minutes,
                 )
             return {
                 "ok": True,
@@ -448,7 +450,8 @@ class JourneyPlannerService:
             opt["crowd_category"] = opt.get("crowding_label") or crowd.get("crowding_label") or "Standing Room"
             opt["avg_rci"] = round(float(opt.get("rci") or crowd.get("mean_rci") or 50.0), 1)
             opt["peak_rci"] = round(float(crowd.get("peak_rci") or opt["avg_rci"]), 1)
-            opt["occupancy_percent"] = int(opt["avg_rci"])
+            opt["occupancy_percent"] = None
+            opt["capacity_verified"] = False
 
             # Extract or reconstruct passenger loads and zone forecasts
             zb = crowd.get("zone_breakdown") or []
@@ -983,6 +986,8 @@ class JourneyPlannerService:
             o["wait_time_minutes"] = int(o.get("wait_time_min", 10))
             o["crowd_category"] = o.get("crowding_label", "Standing Room")
             o["avg_rci"] = round(float(o.get("rci", 50.0)), 1)
+            o["occupancy_percent"] = None
+            o["capacity_verified"] = False
 
         return [opt1, opt2, opt3]
 
@@ -994,30 +999,100 @@ class JourneyPlannerService:
         day_type: str,
         preference: str,
         hour: int = 18,
+        offset_minutes: int = 0,
     ) -> Dict[str, Any]:
         """Provides realistic mock options for unseeded canonical demonstration queries (e.g. DEL_001 -> DEL_003)."""
         dep_sec = parse_time_to_seconds(departure_time)
         t_dep_str = format_seconds_to_time(dep_sec)
+        h = (dep_sec // 3600) % 24
 
-        # Option 1: Trunk Express (Fastest, High crowding)
+        # Crowd determination based on hour and scrubber offset
+        if h in (0, 1, 2, 3, 4, 11, 12, 13, 14, 15):
+            opt1_crowd = "Seats Available"
+            opt1_cat = "Low"
+            opt1_rci = 24.0
+            opt1_tickets = 45
+            tips = []
+        elif offset_minutes >= 30:
+            opt1_crowd = "Standing Room"
+            opt1_cat = "Moderate"
+            opt1_rci = 54.0
+            opt1_tickets = 110
+            tips = ["Departing at current offset avoids peak crowding"]
+        else:
+            opt1_crowd = "Crowded"
+            opt1_cat = "High"
+            opt1_rci = 78.0
+            opt1_tickets = 145
+            tips = ["Departing 30 mins later offers Standing Room on route 102A"]
+
+        # Option 1: 433UP AC Trunk Express
         t1_travel = 35.0
         t1_wait = 5.0
         t1_total = t1_travel + t1_wait
         arr1_str = format_seconds_to_time(dep_sec + int(t1_travel * 60))
 
-        # Option 2: Regular Shuttle (Balanced, Moderate crowding)
-        t2_travel = 42.0
-        t2_wait = 8.0
+        # Option 2: 102AUP Fastest trunk service / Direct express
+        t2_travel = 35.0
+        t2_wait = 5.0
         t2_total = t2_travel + t2_wait
         arr2_str = format_seconds_to_time(dep_sec + int(t2_travel * 60))
 
-        # Option 3: AC Low Floor (Least crowded, Low crowding)
-        t3_travel = 48.0
-        t3_wait = 12.0
+        # Option 3: 102LSTLUP Balanced route
+        t3_travel = 42.0
+        t3_wait = 4.0
         t3_total = t3_travel + t3_wait
         arr3_str = format_seconds_to_time(dep_sec + int(t3_travel * 60))
 
+        # Option 4: 534UP Regular AC service
+        t4_travel = 38.0
+        t4_wait = 6.0
+        t4_total = t4_travel + t4_wait
+        arr4_str = format_seconds_to_time(dep_sec + int(t4_travel * 60))
+
+        # Boarding advice on trunk express
+        boarding_adv = None
+        if opt1_crowd == "Crowded":
+            boarding_adv = {
+                "show_advice": True,
+                "suggested_stop_id": "DEL_001",
+                "earlier_stop_name": "Connaught Place (Super Bazar)",
+                "walk_distance_m": 320.0,
+                "earlier_crowd_level": "Seats Available",
+                "message": "Walking 320m to Connaught Place (Super Bazar) offers Seats Available",
+            }
+
         opts = [
+            {
+                "route_id": "433UP",
+                "route_short_name": "433UP",
+                "route_name": "433 Express",
+                "direction_id": 0,
+                "pattern_id": "PAT_433_UP",
+                "operator": "DTC",
+                "scheduled_departure": t_dep_str,
+                "scheduled_arrival": arr1_str,
+                "travel_time_min": t1_travel,
+                "wait_time_min": t1_wait,
+                "total_time_min": t1_total,
+                "rci": opt1_rci,
+                "crowd_category": opt1_cat,
+                "crowding_category": opt1_cat,
+                "crowd_level": opt1_crowd,
+                "crowding_label": opt1_crowd,
+                "confidence": "high",
+                "confidence_text": "Based on a lot of data",
+                "sample_ticket_count": opt1_tickets,
+                "vehicle_class": "AC",
+                "capacity_verified": False,
+                "occupancy_percent": None,
+                "origin_stop": {"id": origin_stop_id, "name": "Connaught Place (Super Bazar)", "lat": 28.6315, "lon": 77.2167},
+                "destination_stop": {"id": destination_stop_id, "name": "AIIMS New Delhi", "lat": 28.5672, "lon": 77.2100},
+                "timing": {"walk_time_min": 0.0, "wait_time_min": t1_wait, "in_vehicle_min": t1_travel, "travel_time_min": t1_travel, "total_duration_min": t1_total, "stops_count": 14, "distance_km": 10.5, "detour_ratio": 1.15},
+                "crowding": {"peak_rci": opt1_rci + 6.0, "mean_rci": opt1_rci, "boarding_rci": opt1_rci - 6.0, "journey_rci": opt1_rci, "category": opt1_crowd, "label": opt1_crowd, "crowding_label": opt1_crowd, "technical_category": opt1_cat, "crowding_category": opt1_cat, "confidence": "high", "tier": "estimated", "interval": {"p10": opt1_rci - 10.0, "p90": opt1_rci + 10.0}, "zone_breakdown": []},
+                "recommendation": "AC Trunk Express",
+                "boarding_advice": boarding_adv,
+            },
             {
                 "route_id": "102AUP",
                 "route_short_name": "102AUP",
@@ -1026,18 +1101,27 @@ class JourneyPlannerService:
                 "pattern_id": "PAT_102A_UP",
                 "operator": "DTC",
                 "scheduled_departure": t_dep_str,
-                "scheduled_arrival": arr1_str,
-                "travel_time_min": t1_travel,
-                "wait_time_min": t1_wait,
-                "total_time_min": t1_total,
-                "rci": 76.5,
-                "crowding_category": "High",
-                "crowding_label": "Crowded",
+                "scheduled_arrival": arr2_str,
+                "travel_time_min": t2_travel,
+                "wait_time_min": t2_wait,
+                "total_time_min": t2_total,
+                "rci": opt1_rci,
+                "crowd_category": opt1_cat,
+                "crowding_category": opt1_cat,
+                "crowd_level": opt1_crowd,
+                "crowding_label": opt1_crowd,
                 "confidence": "high",
+                "confidence_text": "Based on a lot of data",
+                "sample_ticket_count": opt1_tickets,
+                "vehicle_class": "Non-AC",
+                "capacity_verified": False,
+                "occupancy_percent": None,
                 "origin_stop": {"id": origin_stop_id, "name": "Connaught Place (Super Bazar)", "lat": 28.6315, "lon": 77.2167},
                 "destination_stop": {"id": destination_stop_id, "name": "AIIMS New Delhi", "lat": 28.5672, "lon": 77.2100},
-                "timing": {"walk_time_min": 0.0, "wait_time_min": t1_wait, "in_vehicle_min": t1_travel, "travel_time_min": t1_travel, "total_duration_min": t1_total, "stops_count": 14, "distance_km": 10.5, "detour_ratio": 1.15},
-                "crowding": {"peak_rci": 82.0, "mean_rci": 76.5, "boarding_rci": 68.0, "journey_rci": 76.5, "category": "Crowded", "label": "Crowded", "crowding_label": "Crowded", "technical_category": "High", "crowding_category": "High", "confidence": "high", "tier": "estimated", "interval": {"p10": 70.0, "p90": 90.0}, "zone_breakdown": []},
+                "timing": {"walk_time_min": 0.0, "wait_time_min": t2_wait, "in_vehicle_min": t2_travel, "travel_time_min": t2_travel, "total_duration_min": t2_total, "stops_count": 14, "distance_km": 10.5, "detour_ratio": 1.15},
+                "crowding": {"peak_rci": opt1_rci + 6.0, "mean_rci": opt1_rci, "boarding_rci": opt1_rci - 6.0, "journey_rci": opt1_rci, "category": opt1_crowd, "label": opt1_crowd, "crowding_label": opt1_crowd, "technical_category": opt1_cat, "crowding_category": opt1_cat, "confidence": "high", "tier": "estimated", "interval": {"p10": opt1_rci - 10.0, "p90": opt1_rci + 10.0}, "zone_breakdown": []},
+                "recommendation": "Fastest trunk service" if preference == "fastest" else "Direct express",
+                "boarding_advice": boarding_adv,
             },
             {
                 "route_id": "102LSTLUP",
@@ -1047,18 +1131,27 @@ class JourneyPlannerService:
                 "pattern_id": "PAT_102L_UP",
                 "operator": "DIMTS Cluster",
                 "scheduled_departure": t_dep_str,
-                "scheduled_arrival": arr2_str,
-                "travel_time_min": t2_travel,
-                "wait_time_min": t2_wait,
-                "total_time_min": t2_total,
+                "scheduled_arrival": arr3_str,
+                "travel_time_min": t3_travel,
+                "wait_time_min": t3_wait,
+                "total_time_min": t3_total,
                 "rci": 34.2,
+                "crowd_category": "Low",
                 "crowding_category": "Low",
+                "crowd_level": "Seats Available",
                 "crowding_label": "Seats Available",
                 "confidence": "high",
+                "confidence_text": "Based on a lot of data",
+                "sample_ticket_count": 95,
+                "vehicle_class": "Non-AC",
+                "capacity_verified": False,
+                "occupancy_percent": None,
                 "origin_stop": {"id": origin_stop_id, "name": "Connaught Place (Super Bazar)", "lat": 28.6315, "lon": 77.2167},
                 "destination_stop": {"id": destination_stop_id, "name": "AIIMS New Delhi", "lat": 28.5672, "lon": 77.2100},
-                "timing": {"walk_time_min": 0.0, "wait_time_min": t2_wait, "in_vehicle_min": t2_travel, "travel_time_min": t2_travel, "total_duration_min": t2_total, "stops_count": 16, "distance_km": 11.2, "detour_ratio": 1.22},
+                "timing": {"walk_time_min": 0.0, "wait_time_min": t3_wait, "in_vehicle_min": t3_travel, "travel_time_min": t3_travel, "total_duration_min": t3_total, "stops_count": 16, "distance_km": 11.2, "detour_ratio": 1.22},
                 "crowding": {"peak_rci": 38.0, "mean_rci": 34.2, "boarding_rci": 28.0, "journey_rci": 34.2, "category": "Seats Available", "label": "Seats Available", "crowding_label": "Seats Available", "technical_category": "Low", "crowding_category": "Low", "confidence": "high", "tier": "estimated", "interval": {"p10": 26.0, "p90": 42.0}, "zone_breakdown": []},
+                "recommendation": "Recommended: 6 mins slower than fastest, but 55% less crowded",
+                "boarding_advice": None,
             },
             {
                 "route_id": "534UP",
@@ -1068,18 +1161,27 @@ class JourneyPlannerService:
                 "pattern_id": "PAT_534_UP",
                 "operator": "DTC",
                 "scheduled_departure": t_dep_str,
-                "scheduled_arrival": arr3_str,
-                "travel_time_min": t3_travel,
-                "wait_time_min": t3_wait,
-                "total_time_min": t3_total,
+                "scheduled_arrival": arr4_str,
+                "travel_time_min": t4_travel,
+                "wait_time_min": t4_wait,
+                "total_time_min": t4_total,
                 "rci": 58.0,
+                "crowd_category": "Moderate",
                 "crowding_category": "Moderate",
+                "crowd_level": "Standing Room",
                 "crowding_label": "Standing Room",
                 "confidence": "medium",
+                "confidence_text": "Based on some data",
+                "sample_ticket_count": 68,
+                "vehicle_class": "AC",
+                "capacity_verified": False,
+                "occupancy_percent": None,
                 "origin_stop": {"id": origin_stop_id, "name": "Connaught Place (Super Bazar)", "lat": 28.6315, "lon": 77.2167},
                 "destination_stop": {"id": destination_stop_id, "name": "AIIMS New Delhi", "lat": 28.5672, "lon": 77.2100},
-                "timing": {"walk_time_min": 0.0, "wait_time_min": t3_wait, "in_vehicle_min": t3_travel, "travel_time_min": t3_travel, "total_duration_min": t3_total, "stops_count": 18, "distance_km": 12.0, "detour_ratio": 1.30},
+                "timing": {"walk_time_min": 0.0, "wait_time_min": t4_wait, "in_vehicle_min": t4_travel, "travel_time_min": t4_travel, "total_duration_min": t4_total, "stops_count": 18, "distance_km": 12.0, "detour_ratio": 1.30},
                 "crowding": {"peak_rci": 65.0, "mean_rci": 58.0, "boarding_rci": 50.0, "journey_rci": 58.0, "category": "Standing Room", "label": "Standing Room", "crowding_label": "Standing Room", "technical_category": "Moderate", "crowding_category": "Moderate", "confidence": "medium", "tier": "estimated", "interval": {"p10": 48.0, "p90": 68.0}, "zone_breakdown": []},
+                "recommendation": "Balanced frequency",
+                "boarding_advice": None,
             },
         ]
 
@@ -1094,6 +1196,8 @@ class JourneyPlannerService:
             opt["wait_time_minutes"] = int(opt.get("wait_time_min", 10))
             opt["crowd_category"] = opt.get("crowding_label", "Standing Room")
             opt["avg_rci"] = round(float(opt.get("rci", 50.0)), 1)
+            opt["occupancy_percent"] = None
+            opt["capacity_verified"] = False
             self._attach_stops_to_option(opt)
 
         pref_key = str(preference).strip().lower().replace(" ", "_").replace("-", "_")
@@ -1101,13 +1205,19 @@ class JourneyPlannerService:
             "ok": True,
             "options": scored_opts[:8],
             "options_count": len(scored_opts[:8]),
+            "departure_tips": tips,
+            "tips": tips,
             "data": {
                 "origin_stop_id": origin_stop_id,
                 "destination_stop_id": destination_stop_id,
                 "preference": preference,
                 "day_type": day_type,
+                "offset_minutes": offset_minutes,
+                "departure_time": t_dep_str,
                 "options_count": len(scored_opts[:8]),
                 "options": scored_opts[:8],
+                "departure_tips": tips,
+                "tips": tips,
             },
             "query": {
                 "origin_stop_id": origin_stop_id,
@@ -1115,11 +1225,13 @@ class JourneyPlannerService:
                 "departure_time": departure_time,
                 "day_type": day_type,
                 "preference": preference,
+                "offset_minutes": offset_minutes,
             },
             "meta": {
                 "total_candidates": len(opts),
                 "preference_applied": preference,
                 "weights": PRESET_WEIGHTS.get(pref_key, PRESET_WEIGHTS["balanced"]),
                 "data_tier": "estimated",
+                "offset_minutes": offset_minutes,
             },
         }

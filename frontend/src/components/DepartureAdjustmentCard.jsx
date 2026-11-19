@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lightbulb, Clock, CheckCircle2 } from 'lucide-react';
+import { Lightbulb, Clock, CheckCircle2, Check } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
 const addMinutes = (timeStr, mins) => {
@@ -57,7 +57,7 @@ export default function DepartureAdjustmentCard({
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <span className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800 text-sm font-bold shrink-0">
-            {isLow ? '✓' : <Lightbulb className="w-4 h-4 text-emerald-800" />}
+            {isLow ? <Check className="w-4 h-4 text-emerald-800" /> : <Lightbulb className="w-4 h-4 text-emerald-800" />}
           </span>
           <h3 className="text-sm sm:text-base font-bold text-gray-900">
             {isLow
