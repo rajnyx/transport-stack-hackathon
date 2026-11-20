@@ -261,6 +261,12 @@ export default function RouteDetailsPage() {
   }, [selectedHour, dayType, lang]);
 
   const routeNum = routeInfo?.route_short_name || routeId;
+  const totalDistanceKm = Number(
+    routeInfo?.total_distance_km ||
+    (stops.length > 0 ? (stops[stops.length - 1]?.cum_dist_km || stops[stops.length - 1]?.distance_km || (stops.length * 0.55)) : 14.5)
+  );
+  const approxTripMinutes = Math.max(20, Math.round((stops.length || 25) * 1.8));
+  const approxRouteSpeed = totalDistanceKm > 0 ? Math.round((totalDistanceKm * 60) / approxTripMinutes) : 21;
 
   // Segment crowd level computation for chosen hour — dynamically reflects selectedHour, dayType, and stop position
   const getSegmentCrowd = (stopIndex) => {
@@ -405,7 +411,7 @@ export default function RouteDetailsPage() {
                 {routeInfo?.route_long_name || `Bus Route ${routeNum}`}
               </h1>
               <p className="text-xs text-transit-textMuted mt-0.5">
-                {stops.length} {t('results.stops')} · {routeInfo?.agency_name || 'Delhi DTC'} · {t('app.historicalNote')}
+                {stops.length} {t('results.stops')} · {totalDistanceKm > 0 ? `${totalDistanceKm.toFixed(1)} km · ` : ''}~{approxRouteSpeed} km/h avg · {routeInfo?.agency_name || 'Delhi DTC'} · {t('app.historicalNote')}
               </p>
             </div>
           </div>

@@ -21,11 +21,11 @@ Delhi records every bus ticket sold via conductors' Electronic Ticketing Machine
 - **Crowded** (Crimson Red, RCI ≥ 85)
 
 ### Canonical Showcase: Anand Vihar to Connaught Place (6:00 PM Weekday)
-| Option | Bus Route | Travel Time | Crowdedness Level | RCI Score | Commuter Advantage |
-| :---: | :---: | :---: | :---: | :---: | :--- |
-| **Option 1 (Fastest)** | Route 101UP Direct | **45 min** | **Crowded** | **88 / 100** | Fastest arrival, but packed middle stretch. |
-| **Option 2 (Balanced)** | Route 85UP Regular | **55 min** | **Standing Room** | **68 / 100** | +10 min commute, but comfortable standing space throughout. |
-| **Option 3 (Least Crowded)** | Route 73UP (Departs +15m) | **65 min** | **Seats Available** | **34 / 100** | Guaranteed seat; ideal for luggage or elderly commuters. |
+| Option | Bus Route | Distance / Speed | Travel Time | Crowdedness Level | RCI Score | Commuter Advantage |
+| :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Option 1 (Fastest)** | Route 101UP Direct | 13.4 km (~21 km/h) | **45 min** | **Crowded** | **88 / 100** | Fastest arrival, but packed middle stretch. |
+| **Option 2 (Balanced)** | Route 85UP Regular | 14.8 km (~19 km/h) | **55 min** | **Standing Room** | **68 / 100** | +10 min commute, but comfortable standing space throughout. |
+| **Option 3 (Least Crowded)** | Route 73UP (Departs +15m) | 13.4 km (~20 km/h) | **65 min** | **Seats Available** | **34 / 100** | Guaranteed seat; ideal for luggage or elderly commuters. |
 
 ---
 

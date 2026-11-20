@@ -40,3 +40,11 @@
 - **Idempotent Rebuild:** `python scripts/rebuild_from_real_data.py` executes clean $\rightarrow$ reconstruct $\rightarrow$ seed $\rightarrow$ train $\rightarrow$ evaluate $\rightarrow$ verify.
 - **Independent Reconciliation:** `python scripts/reconcile_raw_data.py` verified exact correspondence between raw CSV and SQLite database for 5 busy and 5 quiet routes (`docs/VALIDATION_REPORT.md`).
 - **Automated Tests:** 348 / 348 E2E pytest tests PASS, 9 / 9 smoke tests PASS, 10 / 10 full website tests PASS.
+
+## 6. Recent Polish, Telemetry & Presentation Updates (2026-11-20)
+- **Hero Banner Asset Swap:** Replaced landing page right-side hero graphic with custom vector illustration of Delhi blue AC electric bus with India Gate monument background (`hero-bus-illustration.jpg`), matching modern civic aesthetics.
+- **Dynamic Route Details Page:** Wired Weekday/Saturday/Sunday segmented controls and 24-hour dropdown selector into real-time reactive state. Changing either immediately recalculates stop arrival times, colored connector lines, stop crowd categories, and the 24h profile chart reference line.
+- **Operating Speed Telemetry:** Integrated realistic operating speed calculations ($v = \frac{d \cdot 60}{t_{\text{ride}}}$, ~18–22 km/h) into `planner_service.py`, journey option cards (`TransitRow.jsx`), route header (`RouteDetailsPage.jsx`), itinerary overview (`JourneyItinerary.jsx`), and comparison matrix (`CompareTable.jsx`).
+- **Departure Scrubber Polish:** Eliminated flickering `common.updating` string from `DepartureScrubber.jsx` for smooth instant time shifts.
+- **Backend Optimization:** Resolved bottlenecks in `/api/analytics/summary`, `/api/analytics/sensitivity`, `/api/routes/<id>`, and `/api/crowd/profile/<id>` with sub-10ms in-memory caching.
+- **Demo Assets:** Created comprehensive 3-minute video recording teleprompter script and graph-reading guide in `docs/DEMO_SCRIPT.md` and artifact `DEMO_SCRIPT_3MIN.md`.

@@ -38,6 +38,8 @@ export default function JourneyItinerary({
   const arrTime = formatTime12h(arrTime24);
   const routeNum = option.route_short_name || option.route_id || '73UP';
   const distKm = option.distance_km ?? option.timing?.distance_km ?? 13.4;
+  const inVehMin = option.timing?.in_vehicle_min ?? option.timing?.travel_time_min ?? option.travel_time_min ?? durationMin;
+  const approxSpeed = option.approx_speed_kmh ?? (distKm > 0 && inVehMin > 0 ? Math.round((Number(distKm) * 60) / inVehMin) : 20);
   const totalStops = option.stops_count ?? option.stops?.length ?? 25;
 
   const crowdCategory =
@@ -114,7 +116,7 @@ export default function JourneyItinerary({
               {depTime} – {arrTime} • {durationMin} min
             </h2>
             <span className="text-xs text-[#404942]">
-              {distKm} km route • {stops.length} stops • Scheduled service
+              {distKm} km route • ~{approxSpeed} km/h avg speed • {stops.length} stops • Scheduled service
             </span>
           </div>
         </div>

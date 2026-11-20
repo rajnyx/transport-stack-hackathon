@@ -90,6 +90,20 @@ export default function CompareTable({
       ),
     },
     {
+      key: 'speed',
+      label: lang === 'hi' ? 'अनुमानित गति' : 'Approx speed',
+      render: (opt) => {
+        const dist = Number(opt.distance_km ?? opt.timing?.distance_km ?? 12.0);
+        const rideMin = Math.round(opt.timing?.travel_time_min ?? opt.timing?.in_vehicle_min ?? opt.travel_time_min ?? opt.ride_time_minutes ?? getOptTotalTime(opt));
+        const spd = opt.approx_speed_kmh ?? (dist > 0 && rideMin > 0 ? Math.round((dist * 60) / rideMin) : 20);
+        return (
+          <span className="tabular-nums font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded text-xs">
+            ~{spd} km/h
+          </span>
+        );
+      },
+    },
+    {
       key: 'crowd_origin',
       label: lang === 'hi' ? 'आपके स्टॉप पर भीड़' : 'Crowd at your stop',
       render: (opt) => (

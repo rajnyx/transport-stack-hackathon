@@ -675,8 +675,12 @@ class JourneyPlannerService:
 
             total_dist_km = cum_dists[-1] if cum_dists[-1] > 0.1 else float(opt.get("timing", {}).get("distance_km", 12.0))
             opt["distance_km"] = round(total_dist_km, 1)
+            in_veh_min = float(opt.get("timing", {}).get("in_vehicle_min") or opt.get("timing", {}).get("travel_time_min") or opt.get("total_duration_minutes") or opt.get("total_time_min") or 35.0)
+            approx_speed = round((total_dist_km / max(1.0, in_veh_min)) * 60.0, 1)
+            opt["approx_speed_kmh"] = approx_speed
             if "timing" in opt and isinstance(opt["timing"], dict):
                 opt["timing"]["distance_km"] = round(total_dist_km, 1)
+                opt["timing"]["approx_speed_kmh"] = approx_speed
 
             n_stops = len(stops_list)
             zone_preds = opt.get("crowding", {}).get("zone_breakdown") or opt.get("zone_forecasts") or []

@@ -52,11 +52,6 @@ export default function DepartureScrubber({
             {t('scrubber.title', 'Adjust departure time')}
           </h2>
         </div>
-        {loading && (
-          <span className="text-xs text-[#526359] animate-pulse">
-            {t('common.updating', 'Updating...')}
-          </span>
-        )}
       </div>
 
       {/* Button Group */}

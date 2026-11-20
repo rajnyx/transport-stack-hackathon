@@ -39,6 +39,8 @@ export default function TransitRow({
   const depTime = formatTime12h(rawDep);
   const distKm = option.distance_km ?? option.timing?.distance_km ?? 13.4;
   const stopsCount = option.stops_count ?? option.stops?.length ?? 25;
+  const inVehMin = option.timing?.in_vehicle_min ?? option.timing?.travel_time_min ?? option.travel_time_min ?? totalMin;
+  const approxSpeed = option.approx_speed_kmh ?? (distKm > 0 && inVehMin > 0 ? Math.round((Number(distKm) * 60) / inVehMin) : 20);
 
   const isAc = option.vehicle_class === 'AC' || option.is_ac === true;
   const vehicleClassLabel = isAc ? t('vehicleClass.ac', 'AC Bus') : t('vehicleClass.nonAc', 'Standard Bus');
@@ -109,7 +111,7 @@ export default function TransitRow({
                   {lang === 'hi' ? `प्रस्थान ${depTime} · निर्धारित` : `Leaves ${depTime} · scheduled`}
                 </p>
                 <p className="text-[11px] text-[#404942] mt-0.5">
-                  {distKm} km · {stopsCount} stops · {vehicleClassLabel} · Direct
+                  {distKm} km · ~{approxSpeed} km/h · {stopsCount} stops · {vehicleClassLabel} · Direct
                 </p>
               </div>
             </div>
@@ -174,7 +176,7 @@ export default function TransitRow({
               </span>
             </div>
             <div className="text-right">
-              <span>Corridor: {stopsCount} stops · {distKm} km</span>
+              <span>Corridor: {stopsCount} stops · {distKm} km · ~{approxSpeed} km/h</span>
             </div>
           </div>
 
@@ -225,7 +227,7 @@ export default function TransitRow({
           </div>
 
           <div className="text-[11px] text-[#404942]">
-            {distKm} km · {stopsCount} stops · {vehicleClassLabel} · Direct
+            {distKm} km · ~{approxSpeed} km/h · {stopsCount} stops · {vehicleClassLabel} · Direct
           </div>
 
           <div className="flex items-center gap-3 pt-0.5 flex-wrap">
