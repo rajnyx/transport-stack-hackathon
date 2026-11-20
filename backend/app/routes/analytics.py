@@ -15,11 +15,25 @@ from app.utils.envelope import api_response
 
 bp = Blueprint("analytics", __name__)
 
+_analytics_summary_cache = None
+_analytics_summary_cache_time = 0.0
+
 
 @bp.route("/analytics/summary", methods=["GET"])
 def get_analytics_summary():
     """Returns network-wide aggregate metrics and model evaluation summary."""
+    global _analytics_summary_cache, _analytics_summary_cache_time
     t0 = time.time()
+    
+    # Cache for 10 minutes to avoid repeated 6-second table scans over 3.3M rows
+    if _analytics_summary_cache is not None and (time.time() - _analytics_summary_cache_time) < 600:
+        return api_response(
+            data=_analytics_summary_cache["data"],
+            data_tier="estimated",
+            start_time=t0,
+            warning=_analytics_summary_cache.get("warning"),
+            degraded_mode=_analytics_summary_cache.get("degraded_mode", False),
+        )
     
     total_routes = 0
     total_stops = 0
@@ -117,6 +131,13 @@ def get_analytics_summary():
     }
     
     warning = "Unseeded database - returning baseline network metrics" if is_unseeded else None
+
+    _analytics_summary_cache = {
+        "data": data,
+        "warning": warning,
+        "degraded_mode": is_unseeded,
+    }
+    _analytics_summary_cache_time = time.time()
 
     return api_response(
         data=data,
@@ -380,6 +401,9 @@ def get_model_metrics():
     return api_response(data=metrics, data_tier="estimated", start_time=t0)
 
 
+_sensitivity_cache = {}
+
+
 @bp.route("/analytics/sensitivity", methods=["GET"])
 def get_analytics_sensitivity():
     """Returns top-overloaded routes under what-if unrecorded passenger scenarios (0%, 10%, 20%, 30%)."""
@@ -389,27 +413,49 @@ def get_analytics_sensitivity():
     hour = int(hour_arg) if hour_arg is not None and hour_arg.isdigit() else None
     limit = min(50, max(1, int(request.args.get("limit", 10))))
 
-    # Query top overloaded routes based on real demand facts
-    sql = """
-        SELECT 
-            f.route_id,
-            COALESCE(r.route_long_name, r.route_short_name, f.route_id) as route_name,
-            ROUND(AVG(f.mean_load), 1) as baseline_load,
-            SUM(f.boardings_total) as sample_ticket_count
-        FROM fact_zone_demand f
-        LEFT JOIN dim_routes r ON f.route_id = r.route_short_name OR f.route_id = r.route_id
-        WHERE f.day_type = :day_type
-    """
-    params = {"day_type": day_type, "limit": limit}
+    cache_key = (day_type, hour, limit)
+    if cache_key in _sensitivity_cache:
+        return api_response(data=_sensitivity_cache[cache_key], data_tier="organizer", start_time=t0)
+
+    # Query top overloaded routes based on real demand facts with fast CTE to avoid 3.3M row OR joins
     if hour is not None:
-        sql += " AND f.hour = :hour"
-        params["hour"] = hour
-    sql += """
-        GROUP BY f.route_id
-        HAVING SUM(f.boardings_total) >= 10
-        ORDER BY baseline_load DESC
-        LIMIT :limit
-    """
+        sql = """
+            WITH top_r AS (
+                SELECT f.route_id, ROUND(AVG(f.mean_load), 1) as baseline_load, SUM(f.boardings_total) as sample_ticket_count
+                FROM fact_zone_demand f
+                WHERE f.day_type = :day_type AND f.hour = :hour
+                GROUP BY f.route_id
+                HAVING SUM(f.boardings_total) >= 10
+                ORDER BY baseline_load DESC
+                LIMIT :limit
+            )
+            SELECT top_r.route_id, 
+                   COALESCE(r.route_long_name, r.route_short_name, top_r.route_id) as route_name,
+                   top_r.baseline_load,
+                   top_r.sample_ticket_count
+            FROM top_r
+            LEFT JOIN dim_routes r ON top_r.route_id = r.route_short_name OR top_r.route_id = r.route_id
+        """
+        params = {"day_type": day_type, "hour": hour, "limit": limit}
+    else:
+        sql = """
+            WITH top_r AS (
+                SELECT f.route_id, ROUND(AVG(f.mean_load), 1) as baseline_load, SUM(f.boardings_total) as sample_ticket_count
+                FROM fact_zone_demand f
+                WHERE f.day_type = :day_type
+                GROUP BY f.route_id
+                HAVING SUM(f.boardings_total) >= 10
+                ORDER BY baseline_load DESC
+                LIMIT :limit
+            )
+            SELECT top_r.route_id, 
+                   COALESCE(r.route_long_name, r.route_short_name, top_r.route_id) as route_name,
+                   top_r.baseline_load,
+                   top_r.sample_ticket_count
+            FROM top_r
+            LEFT JOIN dim_routes r ON top_r.route_id = r.route_short_name OR top_r.route_id = r.route_id
+        """
+        params = {"day_type": day_type, "limit": limit}
 
     try:
         rows = db.session.execute(text(sql), params).fetchall()
@@ -461,6 +507,10 @@ def get_analytics_sensitivity():
         "hour": hour,
         "top_routes": top_routes,
     }
+
+    if len(_sensitivity_cache) > 100:
+        _sensitivity_cache.clear()
+    _sensitivity_cache[cache_key] = data
 
     return api_response(data=data, data_tier="organizer", start_time=t0)
 

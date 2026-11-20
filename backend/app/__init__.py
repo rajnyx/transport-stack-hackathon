@@ -44,6 +44,13 @@ def create_app(config_class=Config) -> Flask:
         except Exception as e:
             logger.warning(f"Database initialization warning: {e}")
 
+        # Pre-warm ML service artifacts in background so user requests are instant
+        try:
+            from app.services.ml_service import MLService
+            MLService.get_instance()
+        except Exception as e:
+            logger.warning(f"MLService warm-up warning: {e}")
+
     # Import blueprints
     from app.routes.health import bp as health_bp
     from app.routes.stops import bp as stops_bp

@@ -1,67 +1,126 @@
-# CrowdWise: Demo Script & Presentation Deck
-**Transport Stack Hackathon 2026 — Track 2: Passenger Demand & Crowdedness Modeling**  
-*Video Demonstration Guide & 6-Slide Presentation Deck Outline*
+# CrowdWise: Ultimate 3-Minute Video Recording Teleprompter & Feature Walkthrough
+
+**Everything you need to say, explain, and click on screen — word for word, chart for chart.**  
+*Read the bold text aloud. Follow the bracketed `[Action]` cues with your mouse.*
 
 ---
 
-# Part 1: 3-Minute Video Walkthrough Script
-
-| Timestamp | Visual / Screen Action | Speaker Narration |
-| :---: | :--- | :--- |
-| **0:00 – 0:30** <br> *(The Hook)* | • Browser opens to CrowdWise homepage.<br>• Camera pans across the clean Delhi transit interface.<br>• Persistent **Factual Data Provenance Banner** (Organizer ETM Feed, Oct 1–31, 2026) and **Data Tiers** visible. | *"Every single day, over 4 million commuters board Delhi's public bus fleet. But every journey planner we use—from Google Maps to One Delhi—ranks routes strictly on travel time and transfer count. Commuters are left to guess whether their bus will have an empty seat or be packed to the door.<br><br>Introducing **CrowdWise**: the first crowdedness-aware bus journey planner built directly on the authentic Delhi Transport Stack datasets."* |
-| **0:30 – 1:15** <br> *(The Canonical Demo)* | • Clicks **"Try Hackathon Showcase"** button.<br>• Form auto-fills: *Anand Vihar ISBT* to *Connaught Place* at *6:00 PM Weekday*.<br>• Hits **"Find Crowdedness-Aware Routes"**.<br>• Results page appears instantly with 3 distinct options. | *"Let’s test the exact challenge set by the organizers: from Anand Vihar to Connaught Place, leaving at 6:00 PM on a weekday.<br><br>Immediately, CrowdWise returns three clear options. Option 1 is the fastest: 45 minutes on Route 101UP, but it’s marked **Crowded** with an RCI of 88. Option 2 takes 55 minutes, but guarantees **Standing Room** with space to breathe. And Option 3, leaving 15 minutes later, takes 65 minutes but offers **Seats Available** with an RCI of only 34! At a single glance, a commuter carrying heavy bags can make an informed choice."* |
-| **1:15 – 1:55** <br> *(Under the Hood)* | • Clicks **"Why this route?"** popover.<br>• Displays mathematical formula and detour check.<br>• Toggles preference to **"Least Crowded"**.<br>• Shows the 8-Zone Corridor Heat Strip. | *"How does this work? A ticket sold is not a passenger on board. We grouped 2.56 million October ETM records by bus trip and solved a mass-conservation recurrence relation along the corridor. We then trained a leakage-free Random Forest regressor with a calibrated 0-100 Relative Crowding Index.<br><br>Our multi-objective planner scores both time and comfort, while enforcing a detour safeguard that caps out-of-the-way diversions at 1.5 times travel time."* |
-| **1:55 – 2:35** <br> *(Corridor & Analytics)* | • Navigates to **/route/101UP**.<br>• Shows Leaflet map with GTFS shape polyline.<br>• Interacts with 24-hour Diurnal Profile chart (Weekday vs Saturday vs Sunday).<br>• Jumps to **/analytics**. | *"For transit planners and DTC dispatchers, CrowdWise provides deep operational visibility. The Route Corridor view breaks down crowding across 8 zones and displays 24-hour diurnal load curves, highlighting morning and evening peaks. The Network Analytics page monitors system-wide corridor stress to identify exactly where adding extra 12-meter buses would alleviate crushing loads."* |
-| **2:35 – 3:00** <br> *(Privacy & Conclusion)* | • Opens **/about** page.<br>• Highlights 100% PASS on automated sanity checks.<br>• Points out DPDP Act 2023 salted HMAC-SHA-256 badge.<br>• Concludes on clean GitHub repository. | *"CrowdWise is fully compliant with India's DPDP Act 2023, using salted HMAC-SHA-256 hashing to protect commuter privacy. It passes 100% of our domain sanity checks and features atomic zero-downtime data swapping.<br><br>CrowdWise gives Delhi commuters their comfort back—one bus trip at a time. Thank you!"* |
+## ⏱️ Video Timer Breakdown (Total: Exactly 180 Seconds / 3 Minutes)
+- **0:00 – 0:25 (25s)**: Landing Page, The Problem, Data Authenticity & Search Setup
+- **0:25 – 0:55 (30s)**: Results Page, Multi-Objective Routing & Departure Scrubber (F5, F9)
+- **0:55 – 1:35 (40s)**: Route Details Page, Live Synchronized Map, Dynamic Day/Hour Controls & Stop Flow Drawer (F1, F2, F6)
+- **1:35 – 2:25 (50s)**: Analytics Overview & Operator Action Sheet (F2, F3, F4, F7)
+- **2:25 – 2:45 (20s)**: Corridors Crowding Map & 24h Time Scrubber (F8)
+- **2:45 – 3:00 (15s)**: Methodology, DPDP Act 2023 Compliance & Conclusion (R1, F7)
 
 ---
 
-# Part 2: 6-Slide Presentation Deck Outline
+## 🎬 Word-For-Word Spoken Script with On-Screen Actions
 
-### Slide 1: Title & Hook
-- **Header**: CrowdWise — Crowdedness-Aware Bus Journey Planner for Delhi
-- **Subheader**: Delhi Transport Stack Hackathon 2026 (Problem Statement 2)
-- **Key Visual**: Side-by-side comparison of a crowded bus vs an open seat bus.
-- **Core Message**: Transform 2.56 million ticketing records into transparent commuter comfort.
+### Part 1: Homepage — The Delhi Problem & Real Telemetry (0:00 – 0:25)
 
-### Slide 2: The Delhi Problem & Telemetry Reality
-- **The Gap**: Traditional journey planners optimize only time ($T$), ignoring physical crowding ($C$).
-- **The Ingestion Challenge**:
-  - A ticket records boarding (and destination), not running in-bus load.
-  - Female Pink Pass holders travel free (uncounted riders).
-  - Bus size matters: 60 passengers on 12m bus = standing; on 9m bus = crushed.
-  - Alightings may differ from ticketed destination.
+`[Action: Start with screen at http://localhost:3000/ (Homepage). Gently hover cursor over top green status pills and scroll smoothly down past the Hero banner.]`
 
-### Slide 3: Engineering Architecture & Mathematical Rigor
-- **Mass Conservation**: Recursive running passenger load $L_s = \max(0, L_{s-1} + \gamma_r \cdot b_s - a_s)$ with Pink Pass expansion ($\gamma_r = 1.30$).
-- **Dual-Modal Ingestion**: Mode A (exact O-D: 77.3% matches), Mode B (hybrid reverse-commute & gravity alighting fallback: 11.1%).
-- **Leakage-Safe Machine Learning**:
-  - Chronological 70/15/15 train/val/test split ($\max(\text{train}) < \min(\text{val}) < \min(\text{test})$).
-  - Random Forest Regressor (Spearman Rank Correlation = **0.6879**, Category Accuracy = **99.30%**, Macro-F1 = **0.6787**).
-  - **Relative Crowding Index (RCI)**: Calibrated 0–100 comfort taxonomy.
+> **"Every single day, over 4 million commuters board Delhi's public bus fleet. Yet every conventional journey planner—from Google Maps to One Delhi—optimizes only for travel time and transfers. Commuters are left completely blind to whether their bus will have open seats or be packed to the doors.**
+>
+> **This is CrowdWise: the first crowdedness-aware transit planner built directly on 2.56 million authentic Delhi conductor electronic ticketing records and official static GTFS timetable feeds. We transform raw ticketing telemetry into predictable commuter comfort."**
 
-### Slide 4: Live Demo: Anand Vihar to Connaught Place (6:00 PM Weekday)
-- **Fastest Option (Route 101UP)**: 45 min • Crowded (RCI 88)
-- **Balanced Option (Route 85UP)**: 55 min • Standing Room (RCI 68)
-- **Least Crowded Option (Route 73UP)**: 65 min • Seats Available (RCI 34)
-- **Detour Safeguard**: Max allowable travel time cap $T \le 1.5 \times T_{\text{fastest}} + 10\text{ min}$.
-- **Interactive UI**: Color-blind safe badges, 8-zone heat strips, Leaflet polyline maps.
+`[Action: Click into 'From (Boarding)', show autocomplete, click 'To (Destination)', and click the big green 'Find My Journey' button.]`
 
-### Slide 5: Empirical Validation & DPDP Act 2023 Compliance
-- **Domain Sanity Checks (100% PASS)**:
-  - Morning peak ratio: **2.84×** (exceeds 1.25× requirement).
-  - Evening peak ratio: **2.48×** (exceeds 1.20× requirement).
-  - Physical non-negativity: $L_s \ge 0$ (zero negative violations).
-  - Weekday vs Sunday demand: **1.68×**.
-- **Privacy & Security**:
-  - Salted HMAC-SHA-256 pseudonymization for smartcards & ETM tickets.
-  - Minute timestamp truncation; zero PII persistence.
+---
 
-### Slide 6: Production Scaling & Policy Impact
-- **One-Command Bootstrap**: `python scripts/bootstrap.py` builds the entire pipeline end-to-end.
-- **Zero-Downtime Data Swap**: `python scripts/swap_data.py` executes an atomic 9-step transition with automated rollback.
-- **Benefits for Delhi Transport Department**:
-  - Commuter load shifting away from peak crush corridors.
-  - Data-driven fleet scheduling and 12-meter bus allocation.
-  - Open-source, modular, and ready for deployment on Delhi Transport Stack.
+### Part 2: Results Page — Multi-Objective Routing & Departure Scrubber (0:25 – 0:55)
 
+`[Action: Page opens to /results. Point cursor at the 3 route cards: Route 101UP, Route 85UP, Route 73UP.]`
+
+> **"Here is our journey from Anand Vihar to Connaught Place at 6:00 PM rush hour. Instead of forcing one packed bus, CrowdWise offers transparent trade-offs across distinct options:**
+>
+> **Option 1 on Route 101UP is the fastest at 45 minutes, but it's marked 'Crowded' with an RCI of 88. Route 85UP takes 55 minutes with 'Standing Room'. And Route 73UP offers 'Seats Available' with an RCI of only 34!"**
+
+`[Action: Scroll down slightly and drag the Departure Scrubber slider from +0 to +30 minutes.]`
+
+> **"Notice our automated Departure Adjustment recommendation: leaving just 30 minutes later drops cabin density from 'Very crowded' to 'Fairly crowded', guaranteeing open seating after Hasanpur Village with only a 4-minute travel delta!"**
+
+`[Action: Click the 'Why this route?' button to open modal, then click 'View Route Details' on Route 73UP.]`
+
+> **"Our multi-objective planner balances time and comfort, strictly capping detour times at 1.5 times travel time so commuters never face unrealistic detours."**
+
+---
+
+### Part 3: Route Details — Live Controls, Diurnal Graph & Stop Flow Drawer (0:55 – 1:35)
+
+`[Action: Page opens to http://localhost:3000/route/73UP. Point to the left Stop Timeline and right-hand Map/Chart.]`
+
+> **"On the Route 73UP details page, notice the layout: our full GTFS polyline map is permanently visible and perfectly height-aligned with the stop timeline on the left."**
+
+`[Action: Click 'Sunday' on the Day Type control, then click 'Weekday'. Then change Hour dropdown from 6:00 pm to 8:00 am.]`
+
+> **"Watch the dynamic controls in action: when I switch from Weekday to Sunday, corridor crowding visibly drops. When I change the inspection hour to morning peak, every scheduled stop time updates dynamically on screen, connector lines shift between green, amber, and red through high-demand hubs, and our vertical reference tracker slides across the 24-hour profile chart!"**
+
+`[Action: Click on 'Nirman Vihar' or 'Shakarpur' stop in the left timeline. The Stop Flow Drawer slides open from the right.]`
+
+> **"Clicking any stop opens the Stop Flow Drawer. This demonstrates mathematical mass conservation: it reveals exact observed boardings under Mode A, inferred alightings under Mode B, running in-bus passenger load, and sample ticket confidence for that exact hour."**
+
+`[Action: Close drawer and click 'Analytics' in the top navbar.]`
+
+---
+
+### Part 4: Analytics — Diurnal Graphs, Comparison & Operator Action Sheet (1:35 – 2:25)
+
+`[Action: Page opens to http://localhost:3000/analytics on the 'Network Overview' tab. Point cursor to the Diurnal Area Chart.]`
+
+> **"On the Network Analytics page, our 24-hour diurnal chart visualizes Delhi's total system load against three calibrated capacity zones:**
+>
+> **Notice the solid weekday curve spiking into the red high-capacity band at 9:00 AM and 6:00 PM, while the dashed weekend line stays comfortably low. Below, our distribution bar confirms that 52% of service has open seats, 33% operates in standing room, and only 15% suffers peak crush."**
+
+`[Action: Scroll down to Multi-Route Comparison, click chips '73UP', '534', and '764'. Point to the Model Benchmark Table below.]`
+
+> **"Our multi-route tool overlays normalized load curves across corridors, powered by our trained Random Forest model which achieves a 0.24 Mean Absolute Error—substantially outperforming simple historical averages."**
+
+`[Action: Click the 'Operator Action Sheet' tab in the segmented control.]`
+
+> **"For transit dispatchers, the Operator Action Sheet ranks corridors by hourly passenger deficit. Look at the extra departures column: it dynamically calculates the exact extra buses needed per hour across four unrecorded rider scenarios—0%, 10%, 20%, and 30% for Delhi's Pink Pass ridership."**
+
+---
+
+### Part 5: Corridors Crowding Map (2:25 – 2:45)
+
+`[Action: Click the 'Corridors Crowding Map' tab. Drag the hour scrubber slider from 8 AM to 1 PM to 6 PM. Click any route polyline to show popup.]`
+
+> **"Our third tab is the Corridors Crowding Map. Planners can scrub through all 24 hours of the day to visually watch congestion propagate across Delhi's arterial trunk network. Routes are color-coded in real time: green for open seating, amber for standing room, and red for crowded. Clicking any corridor instantly reveals typical load and scheduled frequency."**
+
+---
+
+### Part 6: Rigor, Privacy & Closing (2:45 – 3:00)
+
+`[Action: Click 'About' in the navbar. Scroll past the 23 Assumptions and point to the Green 'PASS' badges and DPDP Act badge.]`
+
+> **"Under the hood, CrowdWise explicitly documents all 23 operational assumptions, passes 100% of our algorithmic sanity checks, and complies with India's DPDP Act 2023 using salted HMAC-SHA-256 token hashing.**
+>
+> **CrowdWise gives Delhi commuters their comfort back—one bus trip at a time. Thank you!"**
+
+---
+
+## 📊 Graph & Data Reading Guide (What Each Metric Means)
+
+When your video camera is focused on any graph or table, here is the exact technical explanation:
+
+1. **Diurnal Area Chart (`/analytics`)**:
+   - **X-Axis**: Hours of the day from `6 am` to `9 pm`.
+   - **Y-Axis**: Relative Crowding Index (0 to 100).
+   - **Colored Bands**: Green zone (0–35, low crowd), Yellow zone (35–70, moderate crowd), Red zone (70–100, high density).
+   - **Lines**: Solid green line is Weekday load; Dashed grey line is Weekend load.
+   - **Takeaway**: Twin morning (9 AM) and evening (6 PM) commuter peaks.
+
+2. **24-Hour Profile Chart (`/route/73UP`)**:
+   - **Solid Dark Area**: Weekday running passenger load index.
+   - **Teal Area**: Weekend running passenger load index.
+   - **Vertical Dashed Green Line**: Real-time reference marker indicating the exact hour selected in the dropdown.
+
+3. **Stop Flow Drawer (`/route/73UP`)**:
+   - **Formula**: $\text{Running Load}_s = \max(0, \text{Running Load}_{s-1} + \text{Boardings}_s - \text{Alightings}_s)$.
+   - **Attribution Mode**: Mode A means observed conductor ticket data; Mode B means gravity/symmetry inferred alightings.
+
+4. **Operator Action Sheet (`/analytics` Tab 2)**:
+   - **Passenger Deficit**: $(\text{Typical Load} - \text{Nominal Capacity}) \times \text{Trips/Hour}$.
+   - **Extra Trips (0%, 10%, 20%, 30%)**: Number of additional buses required to bring average occupancy below vehicle capacity under varying Pink Pass female ridership assumptions.

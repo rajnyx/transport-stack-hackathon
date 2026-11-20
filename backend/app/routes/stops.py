@@ -16,13 +16,13 @@ _search_engine: Optional[StopSearchEngine] = None
 
 def get_search_engine() -> Optional[StopSearchEngine]:
     global _search_engine
+    if _search_engine is not None:
+        return _search_engine
     try:
         stops = load_all_stops(db.session)
         if not stops:
-            _search_engine = None
             return None
-        if _search_engine is None or len(_search_engine.stops) != len(stops):
-            _search_engine = StopSearchEngine(stops)
+        _search_engine = StopSearchEngine(stops)
     except Exception:
         _search_engine = None
     return _search_engine

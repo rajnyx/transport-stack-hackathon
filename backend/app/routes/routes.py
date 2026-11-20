@@ -21,6 +21,8 @@ from app.utils.envelope import api_response
 
 bp = Blueprint("routes", __name__)
 
+_route_details_cache = {}
+
 
 @bp.route("", methods=["GET"])
 def list_routes():
@@ -80,7 +82,11 @@ def get_route_details(route_id: str):
     except (ValueError, TypeError):
         hour = 18
         
-    day_type = request.args.get("day_type", "WEEKDAY")
+    day_type = request.args.get("day_type", "WEEKDAY").upper()
+    
+    cache_key = (clean_id.upper(), direction_id, day_type, hour)
+    if cache_key in _route_details_cache:
+        return api_response(data=_route_details_cache[cache_key], data_tier="estimated", start_time=t0)
     
     route = db.session.execute(
         select(DimRoute).where(
@@ -225,6 +231,9 @@ def get_route_details(route_id: str):
         "hourly_profile": hourly_rci_list,
         "hourly_crowd_profile": hourly_crowd,
     }
+    if len(_route_details_cache) > 200:
+        _route_details_cache.clear()
+    _route_details_cache[cache_key] = data
     return api_response(data=data, data_tier="estimated", start_time=t0)
 
 

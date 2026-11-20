@@ -6,6 +6,8 @@ from app.utils.envelope import api_response
 
 bp = Blueprint("crowd", __name__, url_prefix="/api")
 
+_crowd_matrix_cache = {}
+
 
 @bp.route("/crowd/<route_id>", methods=["GET"])
 @bp.route("/crowd/profile/<route_id>", methods=["GET"])
@@ -13,7 +15,11 @@ def get_route_crowd_matrix(route_id: str):
     """Returns 8-zone x 24-hour crowdedness matrix for heatmaps and profiles."""
     t0 = time.time()
     direction_id = int(request.args.get("direction", 0))
-    day_type = request.args.get("day_type", "WEEKDAY")
+    day_type = request.args.get("day_type", "WEEKDAY").upper()
+    
+    cache_key = (str(route_id).upper(), direction_id, day_type)
+    if cache_key in _crowd_matrix_cache:
+        return api_response(data=_crowd_matrix_cache[cache_key], start_time=t0)
     
     ml_service = MLService.get_instance()
     
@@ -71,6 +77,9 @@ def get_route_crowd_matrix(route_id: str):
         "zone_profiles": zone_profiles,
         "hourly_profile": hourly_profile,
     }
+    if len(_crowd_matrix_cache) > 200:
+        _crowd_matrix_cache.clear()
+    _crowd_matrix_cache[cache_key] = data
     return api_response(data=data, start_time=t0)
 
 
