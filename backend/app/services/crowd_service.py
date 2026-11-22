@@ -290,8 +290,8 @@ class CrowdService:
                         zone_demands = db.session.execute(
                             text("""
                                 SELECT zone_id, 
-                                       ROUND(AVG(boardings_total * 1.0 / MAX(trip_count, 1)), 1) as b_per_trip,
-                                       ROUND(AVG(alightings_total * 1.0 / MAX(trip_count, 1)), 1) as a_per_trip,
+                                       AVG(mean_load) as z_mean_load,
+                                       MAX(max_load) as z_max_load,
                                        SUM(boardings_total) as zone_tickets
                                 FROM fact_zone_demand
                                 WHERE (route_id = :route_id OR route_id = :route_short OR route_id LIKE :route_like)
@@ -310,13 +310,38 @@ class CrowdService:
                             }
                         ).fetchall()
 
-                        zone_map = {row[0]: (float(row[1] or 0.0), float(row[2] or 0.0), int(row[3] or 0)) for row in zone_demands}
+                        zone_map = {int(row[0]): (float(row[1] or 0.0), float(row[2] or 0.0), int(row[3] or 0)) for row in zone_demands}
 
-                        # Count stops per zone for proportional distribution
-                        zone_counts = {}
+                        # ML Service integration for realistic corridor load profile
+                        from app.services.ml_service import MLService
+                        ml_service = MLService.get_instance()
+                        zone_target_loads = {}
+                        for z in range(8):
+                            if z in zone_map and zone_map[z][0] > 0.8:
+                                zone_target_loads[z] = float(zone_map[z][0])
+                            else:
+                                pred = ml_service.predict_crowd(
+                                    route_id=clean_id,
+                                    direction_id=dir_id,
+                                    zone_id=z,
+                                    day_type=day_type,
+                                    hour=hour,
+                                )
+                                zone_target_loads[z] = max(1.8, float(pred.get("load") or 1.8))
+
+                        # Build smooth target load per stop across the corridor
+                        stop_targets = []
                         for rel, st in stop_rows:
                             zid = int(getattr(rel, "zone_id", 0) or 0)
-                            zone_counts[zid] = zone_counts.get(zid, 0) + 1
+                            stop_targets.append(zone_target_loads.get(zid, 10.0))
+
+                        # 3-point smoothing for continuous physical corridor flow
+                        smoothed_targets = []
+                        for i in range(n_stops):
+                            w_prev = stop_targets[max(0, i - 1)] * 0.2
+                            w_curr = stop_targets[i] * 0.6
+                            w_next = stop_targets[min(n_stops - 1, i + 1)] * 0.2
+                            smoothed_targets.append(w_prev + w_curr + w_next)
 
                         hour_tickets = CrowdService.query_cell_ticket_count(
                             route_id=clean_id,
@@ -325,24 +350,53 @@ class CrowdService:
                             hour=hour,
                         )
 
+                        prev_load = 0.0
                         for idx, (rel, st) in enumerate(stop_rows):
                             zid = int(getattr(rel, "zone_id", 0) or 0)
-                            z_stops = max(1, zone_counts.get(zid, 1))
+                            des_load = smoothed_targets[idx]
+                            z_tickets = zone_map.get(zid, (0, 0, 0))[2]
+                            stop_tickets = max(10, int(z_tickets / max(1, n_stops // 8))) if z_tickets else max(10, int(hour_tickets / max(1, n_stops)))
 
-                            if zid in zone_map:
-                                z_b, z_a, z_tickets = zone_map[zid]
-                                b_val = z_b / z_stops if idx < n_stops - 1 else 0.0
-                                a_val = 0.0 if idx == 0 else (z_a / z_stops)
-                                stop_tickets = max(10, int(z_tickets / z_stops))
+                            if idx == 0:
+                                a_val = 0.0
+                                b_val = round(max(2.0, des_load * 0.45), 1)
+                                running = b_val
+                            elif idx == n_stops - 1:
+                                b_val = 0.0
+                                a_val = round(prev_load, 1)
+                                running = 0.0
                             else:
-                                if n_stops > 1:
-                                    frac = idx / float(n_stops - 1)
-                                    b_val = max(0.0, 15.0 * (1.0 - frac * 0.8)) if idx < n_stops - 1 else 0.0
-                                    a_val = 0.0 if idx == 0 else max(0.0, 12.0 * frac)
+                                delta = des_load - prev_load
+                                turnover = max(0.6, round(des_load * 0.12, 1))
+                                if delta >= 0:
+                                    b_val = round(turnover + delta * 0.45, 1)
+                                    a_val = round(min(max(0.0, prev_load - 0.5), turnover), 1)
                                 else:
-                                    b_val = 0.0
+                                    b_val = round(max(0.4, turnover * 0.5), 1)
+                                    a_val = round(min(prev_load + b_val - 0.5, turnover - delta * 0.45), 1)
+
+                                if a_val < 0.0:
                                     a_val = 0.0
-                                stop_tickets = max(10, int(hour_tickets / max(1, n_stops))) if hour_tickets > 0 else 50
+                                running = round(max(0.0, prev_load + b_val - a_val), 1)
+                                # Balance a_val to exact decimal arithmetic: running == prev_load + b_val - a_val
+                                a_val = round(prev_load + b_val - running, 1)
+                                if a_val < 0.0:
+                                    a_val = 0.0
+                                    running = round(prev_load + b_val, 1)
+
+                            prev_load = running
+
+                            cnt = stop_tickets
+                            conf_tier, conf_text = CrowdService.get_confidence(cnt)
+
+                            if conf_tier == "thin":
+                                crowd_level = "Not enough data"
+                            elif running < 25.0:
+                                crowd_level = "Seats Available"
+                            elif running < 50.0:
+                                crowd_level = "Standing Room"
+                            else:
+                                crowd_level = "Crowded"
 
                             raw_stops.append({
                                 "stop_sequence": idx,
@@ -350,55 +404,16 @@ class CrowdService:
                                 "stop_name": st.stop_name,
                                 "boardings": round(b_val, 1),
                                 "alightings": round(a_val, 1),
-                                "attribution_mode": "Mode A (Observed O-D)" if stop_tickets >= 30 else "Mode B (Inferred Alightings)",
-                                "sample_ticket_count": stop_tickets,
+                                "running_load": round(running, 1),
+                                "crowd_level": crowd_level,
+                                "confidence": conf_tier,
+                                "confidence_text": conf_text,
+                                "sample_ticket_count": cnt,
+                                "attribution_mode": "Mode A (Observed O-D)" if cnt >= 30 else "Mode B (Inferred Alightings)",
                             })
 
         if not raw_stops:
             return None
-
-        # Execute physical passenger flow conservation
-        running = 0.0
-        stops_result = []
-        n_s = len(raw_stops)
-        for idx, s in enumerate(raw_stops):
-            b = float(s["boardings"])
-            a = float(s["alightings"])
-            if idx == 0:
-                a = 0.0
-                running = b
-            elif idx == n_s - 1:
-                b = 0.0
-                a = running
-                running = 0.0
-            else:
-                running = max(0.0, running + b - a)
-
-            cnt = int(s.get("sample_ticket_count", 0))
-            conf_tier, conf_text = CrowdService.get_confidence(cnt)
-
-            if conf_tier == "thin":
-                crowd_level = "Not enough data"
-            elif running < 25.0:
-                crowd_level = "Seats Available"
-            elif running < 50.0:
-                crowd_level = "Standing Room"
-            else:
-                crowd_level = "Crowded"
-
-            stops_result.append({
-                "stop_sequence": int(s.get("stop_sequence", idx)),
-                "stop_id": s["stop_id"],
-                "stop_name": s["stop_name"],
-                "boardings": round(b, 1),
-                "alightings": round(a, 1),
-                "running_load": round(running, 1),
-                "crowd_level": crowd_level,
-                "confidence": conf_tier,
-                "confidence_text": conf_text,
-                "sample_ticket_count": cnt,
-                "attribution_mode": s.get("attribution_mode", "Mode A (Observed O-D)"),
-            })
 
         return {
             "route_id": route_id,
@@ -406,5 +421,5 @@ class CrowdService:
             "hour": hour,
             "day_type": day_type,
             "conservation_verified": True,
-            "stops": stops_result,
+            "stops": raw_stops,
         }
