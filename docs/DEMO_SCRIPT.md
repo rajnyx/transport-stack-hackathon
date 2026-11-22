@@ -6,14 +6,19 @@
 
 ## BEFORE YOU START — SETUP CHECKLIST
 
-Open these tabs in your browser before recording:
-1. `http://localhost:3000/` — the homepage
-2. `http://localhost:3000/results?origin_id=8256&dest_id=365&departure_time=18:00&preference=balanced` — the demo results
-3. `http://localhost:3000/route/101UP` — route details
-4. `http://localhost:3000/analytics` — analytics
-5. `http://localhost:3000/about` — about/data page
+**Open only ONE tab before recording:**
+- **`http://localhost:3000/`** — the homepage (landing page)
 
-Make sure the backend is running (`python backend/run.py`) and the frontend is running (`npm run dev` in the frontend folder).
+You do **NOT** need to pre-open multiple tabs! The entire demo flows naturally by clicking through the website live:
+1. **Homepage** → explain search & priorities → click the demo corridor button.
+2. **Results Page** → explore route cards, scrubber, interactive map, itinerary & stop flow drawer.
+3. **Route Details Page** → click on a route to see the vertical timeline & 24-hour diurnal chart.
+4. **Analytics Page** → click **"Analytics"** in the top navigation bar to explore the 3 tabs.
+5. **Data & Method Page** → click **"Data & Method"** in the top navigation bar.
+
+Make sure both backend and frontend servers are running:
+- Backend: `http://localhost:5000/api/health`
+- Frontend: `http://localhost:3000/`
 
 ---
 
@@ -149,7 +154,7 @@ If I tap any stop, a **Stop Flow Drawer** slides in from the right. This shows m
 
 ## SECTION 3 — Route Details Page (24-Hour Profile)
 
-> *[Navigate to http://localhost:3000/route/101UP]*
+> *[Live navigation: You can either scroll down to the Route Crowding Chart right here on the Results page, or click on Route 101UP / type `http://localhost:3000/route/101UP`]*
 
 "Now let me go deeper on a specific route. This is the **Route Details page** for Route 101UP.
 
@@ -209,7 +214,7 @@ The dashed vertical line shows the hour you currently have selected. The takeawa
 
 ## SECTION 4 — Network Analytics
 
-> *[Navigate to http://localhost:3000/analytics]*
+> *[Live navigation: In the top navigation bar, click "Analytics"]*
 
 "Now let's zoom out to the entire Delhi bus network. This is the **Analytics page**.
 
@@ -273,7 +278,7 @@ Clicking any corridor line opens a popup with the route name, RCI score, and a l
 
 ## SECTION 5 — Data & Method Transparency
 
-> *[Navigate to http://localhost:3000/about]*
+> *[Live navigation: In the top navigation bar, click "Data & Method"]*
 
 "Finally, let me show you the **Data and Method page** — because CrowdWise believes in complete transparency about where every number comes from.
 
@@ -313,7 +318,7 @@ And at the bottom, the actual ML model validation metrics pulled live from the b
 
 ## CLOSING
 
-> *[Navigate back to the homepage or results page. Finish on a clean, uncluttered screen.]*
+> *[Live navigation: In the top navigation bar, click "Plan Journey" or the CrowdWise logo to return to the clean homepage]*
 
 "To summarize what CrowdWise does:
 
