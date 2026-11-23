@@ -148,8 +148,17 @@ export default function JourneyItinerary({
           <span className="text-[10px] font-bold text-[#707971] uppercase tracking-wider">
             Crowd at {depTime}
           </span>
-          <div className="mt-0.5">
+          <div className="mt-0.5 flex items-center gap-2">
             <CrowdIndicator category={crowdCategory} size="sm" />
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+              (option.crowding?.peak_rci ?? option.rci ?? 28) >= 75
+                ? 'bg-red-50 text-red-700 border-red-200'
+                : (option.crowding?.peak_rci ?? option.rci ?? 28) >= 45
+                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            }`}>
+              RCI {Math.round(option.crowding?.peak_rci ?? option.rci ?? 28)}
+            </span>
           </div>
         </div>
       </div>

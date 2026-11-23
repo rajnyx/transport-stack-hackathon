@@ -114,6 +114,19 @@ export default function CompareTable({
       ),
     },
     {
+      key: 'rci',
+      label: lang === 'hi' ? 'भीड़ सूचकांक (RCI)' : 'Crowd Index (RCI)',
+      render: (opt) => {
+        const rci = Math.round(opt.crowding?.peak_rci ?? opt.crowding?.journey_rci ?? opt.peak_rci ?? opt.rci ?? opt.avg_rci ?? 50);
+        const colorClass = rci >= 75 ? 'text-red-700 bg-red-50 border-red-200' : (rci >= 45 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200');
+        return (
+          <span className={`inline-block font-bold px-2 py-0.5 rounded text-xs border ${colorClass}`}>
+            RCI {rci}
+          </span>
+        );
+      },
+    },
+    {
       key: 'busiest',
       label: lang === 'hi' ? 'सबसे व्यस्त हिस्सा' : 'Busiest part of ride',
       render: (opt) => (

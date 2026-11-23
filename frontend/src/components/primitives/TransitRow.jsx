@@ -65,6 +65,15 @@ export default function TransitRow({
         crowdOrigin
       );
 
+  const rciVal = Math.round(
+    option.crowding?.peak_rci ??
+    option.crowding?.journey_rci ??
+    option.peak_rci ??
+    option.rci ??
+    option.avg_rci ??
+    (peakCrowd === 'high' ? 88 : peakCrowd === 'moderate' ? 62 : 8)
+  );
+
   const prefTag =
     preference === 'least_crowded'
       ? (lang === 'hi' ? 'सीट उपलब्धता के लिए अनुशंसित' : 'Recommended for seat availability')
@@ -136,13 +145,24 @@ export default function TransitRow({
                 <CrowdIndicator category={crowdOrigin} size="sm" />
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-[#404942] w-20">Busiest part</span>
-              {isThinData ? (
-                <span className="text-xs text-[#707971] bg-[#d8e6dd] px-1.5 py-0.5 rounded">Not enough data</span>
-              ) : (
-                <CrowdIndicator category={peakCrowd} size="sm" />
-              )}
+            <div className="flex items-center justify-between sm:justify-start gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-medium text-[#404942] w-20">Busiest part</span>
+                {isThinData ? (
+                  <span className="text-xs text-[#707971] bg-[#d8e6dd] px-1.5 py-0.5 rounded">Not enough data</span>
+                ) : (
+                  <CrowdIndicator category={peakCrowd} size="sm" />
+                )}
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                rciVal >= 75
+                  ? 'bg-red-50 text-red-700 border-red-200'
+                  : rciVal >= 45
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              }`}>
+                RCI {rciVal}
+              </span>
             </div>
           </div>
 
@@ -239,6 +259,15 @@ export default function TransitRow({
                 <CrowdIndicator category={crowdOrigin} size="sm" />
               )}
             </div>
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+              rciVal >= 75
+                ? 'bg-red-50 text-red-700 border-red-200'
+                : rciVal >= 45
+                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            }`}>
+              RCI {rciVal}
+            </span>
             <div className="flex items-center gap-1 text-[11px] text-[#707971]">
               <Database className="w-3 h-3 text-[#136c46]" />
               <span>

@@ -174,13 +174,13 @@ export default function RouteCrowdingChart({
       <div>
         <h3 className="text-sm sm:text-base font-bold text-[#121e19]">
           {lang === 'hi'
-            ? `रूट ${currentRouteNumber} पर दिन के समय अनुसार औसत भीड़`
-            : `Typical crowd on route ${currentRouteNumber} by time of day`}
+            ? `रूट ${currentRouteNumber} पर 24 घंटे का भीड़ प्रोफ़ाइल (RCI 0–100)`
+            : `24-Hour Crowding Profile (RCI 0–100) — Route ${currentRouteNumber}`}
         </h3>
         <p className="text-[11px] text-[#404942] mt-0.5">
           {lang === 'hi'
-            ? 'पिछले टिकट डेटा पर आधारित। कार्यदिवस बनाम सप्ताहांत।'
-            : 'Based on past ticket data. Weekday vs weekend comparison.'}
+            ? 'रिलेटिव क्राउडिंग इंडेक्स (RCI)। कार्यदिवस (Navy) बनाम सप्ताहांत (Teal)।'
+            : 'Relative Crowding Index (RCI) across 24 hours. Weekday (Navy) vs Weekend (Teal).'}
         </p>
       </div>
 
