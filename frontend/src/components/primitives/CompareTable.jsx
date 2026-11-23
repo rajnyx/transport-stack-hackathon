@@ -182,7 +182,7 @@ export default function CompareTable({
                       )}
                       {isLeastCrowded && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#136c46] text-white leading-none">
-                          {lang === 'hi' ? 'कम भीड़' : 'Least crowded'}
+                          {lang === 'hi' ? 'सीट उपलब्ध' : 'Seat available'}
                         </span>
                       )}
                       <RouteBadge routeNumber={routeNum} size="sm" />

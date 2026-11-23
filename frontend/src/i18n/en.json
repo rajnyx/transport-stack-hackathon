@@ -27,7 +27,7 @@
     "preference": "Priority",
     "balanced": "Balanced",
     "fastest": "Fastest",
-    "leastCrowded": "Least crowded",
+    "leastCrowded": "Seat Available",
     "search": "Search routes",
     "recent": "Recent searches",
     "nearby": "Nearby stops",

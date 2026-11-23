@@ -67,7 +67,7 @@ export default function TransitRow({
 
   const prefTag =
     preference === 'least_crowded'
-      ? (lang === 'hi' ? 'कम भीड़ के लिए अनुशंसित' : 'Recommended for least crowded')
+      ? (lang === 'hi' ? 'सीट उपलब्धता के लिए अनुशंसित' : 'Recommended for seat availability')
       : preference === 'balanced'
       ? (lang === 'hi' ? 'संतुलित विकल्प' : 'Recommended for balanced')
       : (lang === 'hi' ? 'सबसे तेज़ विकल्प' : 'Recommended for fastest');

@@ -252,14 +252,14 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        {/* Right: [Fastest] [Balanced] [Least crowded] & Compare top 3 */}
+        {/* Right: [Fastest] [Balanced] [Seat Available] & Compare top 3 */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 self-start sm:self-auto">
           {/* Segmented Filter Pills */}
           <div className="bg-[#e9f7ee] p-1 rounded-xl flex items-center gap-1 border border-[#d8e6dd]">
             {[
-              { id: 'fastest', label: 'Fastest' },
-              { id: 'balanced', label: 'Balanced' },
-              { id: 'least_crowded', label: 'Least crowded' },
+              { id: 'fastest', label: lang === 'hi' ? 'सबसे तेज़' : 'Fastest' },
+              { id: 'balanced', label: lang === 'hi' ? 'संतुलित' : 'Balanced' },
+              { id: 'least_crowded', label: lang === 'hi' ? 'सीट उपलब्ध' : 'Seat Available' },
             ].map((tab) => (
               <button
                 key={tab.id}

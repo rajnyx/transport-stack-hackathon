@@ -402,7 +402,7 @@ export default function PlannerPage() {
                     }`}
                   >
                     <Users className="w-4 h-4 text-emerald-300" />
-                    <span>{lang === 'hi' ? 'कम भीड़ (सीट)' : 'Seat Available'}</span>
+                    <span>{lang === 'hi' ? 'सीट उपलब्ध' : 'Seat Available'}</span>
                     <span className="w-1.5 h-1.5 rounded-full bg-[#a2f4c3]"></span>
                   </button>
 

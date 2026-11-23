@@ -21,7 +21,7 @@
 
 Existing transit apps like Google Maps or One Delhi tell you when a bus might arrive, but they have a blind spot: they cannot tell you how crowded that bus will be. For elderly commuters, women, parents with children, or daily office-goers, boarding an overcrowded bus isn't just uncomfortable — it's often physically impossible.
 
-This is **CrowdWise** — a crowdedness-aware bus journey planner for Delhi that models passenger load stop-by-stop, allowing commuters to choose between the fastest, balanced, or least-crowded trip before stepping out."
+This is **CrowdWise** — a crowdedness-aware bus journey planner for Delhi that models passenger load stop-by-stop, allowing commuters to choose between fastest, balanced, or seat-available trips before stepping out."
 
 ---
 
@@ -35,8 +35,8 @@ You can search across all six thousand, eight hundred and sixty-two Delhi bus st
 
 Here at the bottom, commuters select their journey priority:
 - **Fastest** minimizes travel duration strictly.
-- **Balanced** is our multi-objective default — trading a few minutes of travel time for major comfort gains.
-- **Least Crowded** prioritizes empty buses with guaranteed seats.
+- **Seat Available** prioritizes buses with available seating and minimal crowding.
+- **Combo (Balanced)** is our multi-objective default — trading a few minutes of travel time for major comfort gains.
 
 Let's launch our canonical showcase: Anand Vihar to Connaught Place during the six PM weekday evening rush."
 
@@ -52,7 +52,9 @@ Let's launch our canonical showcase: Anand Vihar to Connaught Place during the s
 
 **Option 2 — Route 85UP** is the **Balanced** recommendation: fifty-five minutes. For just ten extra minutes of commute, crowding drops to amber — **Fairly Crowded** with guaranteed standing room.
 
-**Option 3 — Route 73UP** is the **Least Crowded**: green indicator, **Seats Available** with an RCI of only thirty-four. If you have luggage or need to sit, this is your route.
+**Option 3 — Route 73UP** is the **Seat Available** option: green indicator, **Seats Available** with an RCI of only thirty-four. If you have luggage or need to sit, this is your route.
+
+Notice the filter pills above the results — **Fastest**, **Balanced**, and **Seat Available** — letting commuters filter instantly, or tap **Compare** for a side-by-side trade-off matrix.
 
 CrowdWise empowers commuters with clear choices instead of blind guesswork."
 
@@ -122,7 +124,7 @@ Thank you!"
 |:---|:---|:---|:---:|
 | **0:00 – 0:30** | Problem Statement & Hook | Homepage (`/`) | ~75 words |
 | **0:30 – 1:15** | Stop Search & 3 Priorities | Homepage (`/`) | ~95 words |
-| **1:15 – 2:05** | 3 Journey Options (Fastest / Balanced / Least) | Results (`/results`) | ~110 words |
+| **1:15 – 2:05** | 3 Journey Options (Fastest / Balanced / Seat Available) | Results (`/results`) | ~115 words |
 | **2:05 – 2:50** | Scrubber (+15m), Map & Stop Flow | Results (`/results`) | ~105 words |
 | **2:50 – 3:40** | Route Timeline & 24h Weekday vs Weekend Profile | Results / Route Details | ~115 words |
 | **3:40 – 4:10** | Analytics (Overview, Action Sheet, Map) | Analytics (`/analytics`) | ~80 words |
