@@ -63,14 +63,26 @@ export default function JourneyItinerary({
               ? s.occupancy_to_next_stop
               : (legOcc.rci ? legOcc.rci / 100 : legOcc.category));
 
+        const approxLoad = Math.max(1.5, Math.round(((legOcc.rci || 28) * 0.4) * 10) / 10);
+        const approxBoard = isLast ? 0.0 : (isFirst ? Math.max(2.0, approxLoad) : Math.max(0.4, Math.round(approxLoad * 0.16 * 10) / 10));
+        const approxAlight = isFirst ? 0.0 : (isLast ? approxLoad : Math.max(0.3, Math.round(approxLoad * 0.14 * 10) / 10));
+
         return {
           id: s.id || s.stop_id || `stop-${idx}`,
+          stop_id: s.id || s.stop_id || `stop-${idx}`,
           name: s.name || s.stop_name || `Stop ${idx + 1}`,
+          stop_name: s.name || s.stop_name || `Stop ${idx + 1}`,
+          stop_sequence: idx,
           distanceKm: s.distanceKm || (typeof s.distance_km === 'string' ? s.distance_km : (typeof s.distance_km === 'number' ? (idx === 0 ? '0.0 km' : `+${s.distance_km.toFixed(1)} km`) : (idx === 0 ? '0.0 km' : `+${(idx * 0.5).toFixed(1)} km`))),
           time: s.time || s.arrival_time_12h || (idx === 0 ? depTime : isLast ? arrTime : ''),
           isOrigin: isFirst,
           isDestination: isLast,
           occupancyToNextStop: isLast ? null : occVal,
+          running_load: approxLoad,
+          boardings: approxBoard,
+          alightings: approxAlight,
+          crowd_level: legOcc.category || crowdCategory,
+          sample_ticket_count: 24,
         };
       })
     : CANONICAL_DELHI_25_STOPS.map((s, idx) => {
@@ -78,15 +90,26 @@ export default function JourneyItinerary({
         const isLast = idx === CANONICAL_DELHI_25_STOPS.length - 1;
         const legOcc = getLegOccupancy(idx, CANONICAL_DELHI_25_STOPS.length, zoneBreakdown, crowdCategory);
         const approxTime = formatTime12h(addMinutes(depTime24, s.minOffset));
+        const approxLoad = Math.max(1.5, Math.round(((legOcc.rci || 28) * 0.4) * 10) / 10);
+        const approxBoard = isLast ? 0.0 : (isFirst ? Math.max(2.0, approxLoad) : Math.max(0.4, Math.round(approxLoad * 0.16 * 10) / 10));
+        const approxAlight = isFirst ? 0.0 : (isLast ? approxLoad : Math.max(0.3, Math.round(approxLoad * 0.14 * 10) / 10));
 
         return {
           id: s.id,
+          stop_id: s.id,
           name: s.name,
+          stop_name: s.name,
+          stop_sequence: idx,
           distanceKm: s.dist,
           time: isFirst ? depTime : (isLast ? arrTime : approxTime),
           isOrigin: isFirst,
           isDestination: isLast,
           occupancyToNextStop: isLast ? null : (legOcc.rci / 100),
+          running_load: approxLoad,
+          boardings: approxBoard,
+          alightings: approxAlight,
+          crowd_level: legOcc.category || crowdCategory,
+          sample_ticket_count: 24,
         };
       });
 

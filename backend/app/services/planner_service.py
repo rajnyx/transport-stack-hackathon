@@ -951,17 +951,17 @@ class JourneyPlannerService:
             },
         }
 
-        # Option 3: Least Crowded route (e.g. 108A AC Low-Floor) - Low crowd
+        # Option 3: Least Crowded route (e.g. 108 AC Low-Floor) - Low crowd
         t3_travel = 48.0
         t3_wait = 12.0
         t3_total = t3_travel + t3_wait
         arr3_str = format_seconds_to_time(dep_sec + int(t3_travel * 60))
         opt3 = {
-            "route_id": "108AUP",
-            "route_short_name": "108AUP",
-            "route_name": "108A AC",
+            "route_id": "108UP",
+            "route_short_name": "108UP",
+            "route_name": "108 AC",
             "direction_id": 0,
-            "pattern_id": "108A_pat0",
+            "pattern_id": "108UP_pat0",
             "operator": "DTC",
             "scheduled_departure": req_dep_str,
             "scheduled_arrival": arr3_str,
