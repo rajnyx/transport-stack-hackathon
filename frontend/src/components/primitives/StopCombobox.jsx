@@ -90,7 +90,7 @@ export default function StopCombobox({
     setIsLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const matches = await searchStops(query.trim(), 8);
+        const matches = await searchStops(query.trim(), 10);
         setResults(matches || []);
         setActiveIndex(-1);
       } catch (err) {

@@ -318,11 +318,36 @@ class StopSearchEngine:
                 n_l = str(stop.get("stop_name", "")).lower()
                 if "connaught" in n_l or "shivaji stadium" in n_l:
                     matched_indices[idx] = (0.96, "acronym_alias")
-        elif q_lower in ("isbt", "bus stand"):
+        elif "isbt" in q_lower or q_lower in ("bus stand", "terminal", "isbt bus stand"):
             for idx, stop in enumerate(self.stops):
                 n_l = str(stop.get("stop_name", "")).lower()
                 if "isbt" in n_l:
-                    matched_indices[idx] = (0.95, "acronym_alias")
+                    # If specific terminal requested:
+                    if "kashm" in q_lower:
+                        if "kashmere" in n_l or "kashmiri" in n_l:
+                            score = 0.995 if "terminal" in n_l else 0.990
+                        elif "anand vihar" in n_l:
+                            score = 0.920
+                        else:
+                            score = 0.900
+                    elif "sarai" in q_lower or "kale khan" in q_lower:
+                        if "sarai kale" in n_l or "kale khan" in n_l:
+                            score = 0.995 if "terminal" in n_l else 0.990
+                        elif "anand vihar" in n_l:
+                            score = 0.920
+                        else:
+                            score = 0.900
+                    else:
+                        # General ISBT search or ISBT Anand: prioritize Delhi's primary ISBT hubs, Anand Vihar #1
+                        if "anand vihar" in n_l:
+                            score = 0.995 if "terminal" in n_l else 0.990
+                        elif "kashmere" in n_l or "kashmiri" in n_l:
+                            score = 0.985 if "terminal" in n_l else 0.980
+                        elif "sarai kale" in n_l or "kale khan" in n_l:
+                            score = 0.975
+                        else:
+                            score = 0.920
+                    matched_indices[idx] = (score, "acronym_alias")
         elif q_lower in ("aiims", "aims"):
             for idx, stop in enumerate(self.stops):
                 n_l = str(stop.get("stop_name", "")).lower()
