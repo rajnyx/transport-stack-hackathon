@@ -228,7 +228,25 @@ export default function PlannerPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              {/* Canonical Hackathon Demo Shortcut */}
+              <div className="flex items-center justify-between pb-1 flex-wrap gap-2 border-b border-[#d8e6dd]/60">
+                <span className="text-[11px] font-semibold text-[#707971]">
+                  {lang === 'hi' ? 'त्वरित डेमो परीक्षण:' : 'Hackathon Showcase Corridor:'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate('/results?origin_id=8256&origin_name=Anand+Vihar+ISBT&dest_id=365&dest_name=Shivaji+Stadium+Terminal+(Connaught+Place)&departure_time=18:00&preference=least_crowded');
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e9f7ee] hover:bg-[#d8e6dd] text-[#004327] text-xs font-bold border border-[#004327]/20 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Try corridor: Anand Vihar → Connaught Place (6:00 pm)</span>
+                  <ArrowRight className="w-3 h-3 text-[#004327]" />
+                </button>
+              </div>
+
               {/* Input Fields Row with Inset Swap Button */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 relative items-center">
                 {/* Origin Field */}

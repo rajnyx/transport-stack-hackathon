@@ -313,11 +313,15 @@ class StopSearchEngine:
                     matched_indices[idx] = (0.95, "exact_name")
 
         # 2b. Shorthand boost for prominent transit hubs (e.g. 'cp' -> Connaught Place / Shivaji Stadium)
-        if q_lower in ("cp", "rajiv chowk"):
+        if q_lower in ("cp", "rajiv chowk", "connaught", "connaught place"):
             for idx, stop in enumerate(self.stops):
                 n_l = str(stop.get("stop_name", "")).lower()
+                s_id = str(stop.get("stop_id", ""))
                 if "connaught" in n_l or "shivaji stadium" in n_l:
-                    matched_indices[idx] = (0.96, "acronym_alias")
+                    if s_id == "365" or "connaught place" in n_l:
+                        matched_indices[idx] = (0.998, "acronym_alias")
+                    else:
+                        matched_indices[idx] = (0.960, "acronym_alias")
         elif "isbt" in q_lower or q_lower in ("bus stand", "terminal", "isbt bus stand"):
             for idx, stop in enumerate(self.stops):
                 n_l = str(stop.get("stop_name", "")).lower()
