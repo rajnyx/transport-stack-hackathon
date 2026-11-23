@@ -106,14 +106,14 @@ export default function ResultsPage() {
   const rawOptions = planData?.options || [];
 
   // If API returns options, dynamically map their scheduled departures around shifted time
+  const shiftedDepartureTime = addMinutes(departureTime, offsetMinutes);
   const options = rawOptions.map((opt, idx) => {
     let dep;
-    if (opt.scheduled_departure && opt.scheduled_departure.slice(0, 5) >= departureTime) {
+    const waitMin = Math.round(opt.wait_time_minutes ?? opt.wait_time_min ?? (idx * 4));
+    if (opt.scheduled_departure && opt.scheduled_departure.slice(0, 5) >= shiftedDepartureTime) {
       dep = opt.scheduled_departure.slice(0, 5);
-    } else if (opt.wait_time_min !== undefined && opt.wait_time_min !== null) {
-      dep = addMinutes(departureTime, Math.round(opt.wait_time_min) + offsetMinutes);
     } else {
-      dep = addMinutes(departureTime, idx * 5 + offsetMinutes);
+      dep = addMinutes(shiftedDepartureTime, waitMin);
     }
     const dur = Math.round(opt.total_duration_minutes ?? opt.total_time_min ?? 40);
     const arr = opt.scheduled_arrival && opt.scheduled_arrival.slice(0, 5) > dep
@@ -382,7 +382,14 @@ export default function ResultsPage() {
                 {options.length} options found
               </span>
               <span className="text-xs text-[#404942]">
-                Ranked for: <strong className="text-[#004327] capitalize">{preference.replace('_', ' ')}</strong>
+                Ranked for:{' '}
+                <strong className="text-[#004327]">
+                  {preference === 'least_crowded'
+                    ? (lang === 'hi' ? 'सीट उपलब्ध' : 'Seat Available')
+                    : preference === 'fastest'
+                    ? (lang === 'hi' ? 'सबसे तेज़' : 'Fastest')
+                    : (lang === 'hi' ? 'संतुलित' : 'Balanced')}
+                </strong>
               </span>
             </div>
 
